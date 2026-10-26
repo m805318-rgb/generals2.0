@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Generals.io 戰術復刻版 - 試玩版</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
@@ -355,12 +356,13 @@
                     <!-- Open Rooms List -->
                     <div>
                         <div class="text-xs font-semibold text-slate-400 mb-2 flex items-center justify-between">
-                            <span><i class="fa-solid fa-satellite-dish text-emerald-400 mr-1"></i> 公開對戰大廳房間列表</span>
-                            <span class="text-[11px] text-slate-500">點擊即可加入多位玩家戰局</span>
+                            <span><i class="fa-solid fa-satellite-dish text-emerald-400 mr-1"></i> 連線模式與大廳狀態</span>
+                            <span class="text-[11px] text-emerald-400 font-mono" id="netEngineBadge">GitHub P2P 直連引擎就緒</span>
                         </div>
                         <div id="publicRoomsList" class="max-h-36 overflow-y-auto space-y-1.5 pr-1">
-                            <div class="text-xs text-slate-500 py-4 text-center bg-slate-900/50 rounded-xl border border-slate-800/60">
-                                目前尚無等待中的公開房間，請點擊上方「建立多人房間」開局！
+                            <div class="text-xs text-slate-300 py-3.5 px-4 bg-slate-900/70 rounded-xl border border-emerald-500/30 leading-relaxed">
+                                <div class="font-bold text-emerald-400 mb-1"><i class="fa-solid fa-bolt mr-1"></i>GitHub Pages 免伺服器全球直連已啟用！</div>
+                                點擊上方「建立多人房間」即可產生 4 位數房號，將房號或「複製邀請」網址傳給朋友，即可直接跨網域多人連線與混戰 AI！
                             </div>
                         </div>
                     </div>
@@ -401,8 +403,8 @@
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-extrabold text-white">公開發佈與多人連線設定指南</h3>
-                        <p class="text-xs text-slate-400">單一 HTML 檔案即可部署至 GitHub Pages / Vercel / Netlify</p>
+                        <h3 class="text-base font-extrabold text-white">GitHub Pages 部署與連線狀態指南</h3>
+                        <p class="text-xs text-slate-400">已內建免設定 WebRTC P2P 全球連線引擎，上傳 GitHub 即可直接多人對戰</p>
                     </div>
                 </div>
                 <button onclick="closeDeployGuideModal()" class="text-slate-400 hover:text-white text-lg px-2">
@@ -411,26 +413,37 @@
             </div>
 
             <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
-                <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+                <div class="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-1.5">
                     <div class="font-bold text-emerald-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-circle-check"></i> 1. 如何把這個遊戲放到網路上公開？
+                        <i class="fa-solid fa-circle-check"></i> 1. 已為您內建「GitHub 零設定雲端直連 (WebRTC P2P)」！
                     </div>
-                    <p class="text-slate-400">
-                        本遊戲所有程式碼、樣式與音效邏輯皆已完整封裝於這單一一個 <code class="text-amber-300 font-mono">index.html</code> 檔案中。您只需將此檔案上傳至 <strong class="text-white">GitHub Pages</strong>、<strong class="text-white">Vercel</strong>、<strong class="text-white">Netlify</strong> 或任何靜態網頁空間，即可立即獲得公開網址分享給任何人遊玩！
+                    <p class="text-slate-300">
+                        您<strong class="text-white">完全不需要申請任何資料庫或設定後端金鑰</strong>！直接把這個 <code class="text-amber-300 font-mono">index.html</code> 檔案上傳到 GitHub Repository 並開啟 <strong class="text-white">Settings &rarr; Pages</strong>，任何人打開您的 GitHub 網址就能透過 4 位數房號或邀請連結即時跨國對戰！
                     </p>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+                    <div class="font-bold text-amber-400 flex items-center gap-1.5">
+                        <i class="fa-brands fa-github"></i> 2. 三步驟上傳到 GitHub Pages：
+                    </div>
+                    <ol class="list-decimal list-inside text-slate-400 space-y-1">
+                        <li>在 GitHub 建立一個公開 Repository（例如 <code class="text-slate-200 font-mono">generals-game</code>）。</li>
+                        <li>將本檔案儲存為 <code class="text-amber-300 font-mono">index.html</code> 並上傳至該 Repository 根目錄。</li>
+                        <li>進入 Repository 的 <strong class="text-white">Settings &rarr; Pages</strong>，在 Branch 選擇 <code class="text-slate-200 font-mono">main</code> 並點擊 Save，約 1 分鐘後即可獲得您的專屬遊戲網址！</li>
+                    </ol>
                 </div>
 
                 <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
                     <div class="font-bold text-sky-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-database"></i> 2. 外部網站的「線上多人連線」設定 (選填)
+                        <i class="fa-solid fa-database"></i> 3. 進階選配：自訂 Firebase 公開房間列表 (非必要)
                     </div>
                     <p class="text-slate-400">
-                        若您在自己的公開網站上需要啟用「跨裝置線上對戰大廳」，可前往免費的 <span class="text-white font-semibold">Firebase Console</span> 建立專案（開啟 Authentication 匿名登入與 Firestore 資料庫），並將您的 <code class="text-amber-300 font-mono">firebaseConfig</code> JSON 貼在下方或填入程式碼頂端的 <code class="text-amber-300 font-mono">CUSTOM_FIREBASE_CONFIG</code> 中：
+                        預設的 P2P 引擎已支援房號與網址邀請對戰。若您未來想額外架設伺服器列表，也可在下方貼上您的 <code class="text-amber-300 font-mono">firebaseConfig</code> JSON：
                     </p>
-                    <textarea id="inpCustomFirebaseJson" rows="4" placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "...", "appId": "..."}' class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-[11px] text-emerald-300 focus:outline-none focus:border-emerald-500"></textarea>
+                    <textarea id="inpCustomFirebaseJson" rows="3" placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "...", "appId": "..."}' class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-[11px] text-emerald-300 focus:outline-none focus:border-emerald-500"></textarea>
                     <div class="flex justify-end gap-2">
                         <button onclick="applyCustomFirebaseConfigFromModal()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs btn-tactical">
-                            套用並連線雲端伺服器
+                            套用自訂 Firebase 設定
                         </button>
                     </div>
                 </div>
@@ -731,6 +744,19 @@
             savedReplays: []
         };
 
+        // Camera & Viewport State
+        let camera = {
+            x: 0,
+            y: 0,
+            tileSize: 34,
+            isDragging: false,
+            hasMovedDuringDrag: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            camStartX: 0,
+            camStartY: 0
+        };
+
         // Replay Playback State
         let replayState = {
             active: false,
@@ -741,20 +767,7 @@
             data: null
         };
 
-        // Viewport Camera (Canvas Pan & Zoom)
-        let camera = {
-            x: 0,
-            y: 0,
-            tileSize: 38,
-            isDragging: false,
-            dragStartX: 0,
-            dragStartY: 0,
-            camStartX: 0,
-            camStartY: 0,
-            hasMovedDuringDrag: false
-        };
-
-        // Firebase Online State
+        // Firebase & WebRTC P2P Dual Online State (GitHub Ready Out-of-the-Box!)
         let db = null;
         let auth = null;
         let fbOps = null;
@@ -767,8 +780,16 @@
         let lastProcessedClientSeq = {}; // uid -> last sequence timestamp
         let activeRoomRawData = null;
 
+        // Zero-Config WebRTC P2P State (PeerJS) for GitHub Pages Deployment
+        const P2P_ROOM_PREFIX = 'gen-tw-v2-room-';
+        let netMode = 'p2p'; // 'p2p' (default for GitHub) or 'firebase'
+        let peerInstance = null;
+        let hostClientConns = {}; // uid -> DataConnection (used by Host)
+        let clientHostConn = null; // DataConnection to Host (used by Client)
+        let localPlayerUid = 'u_' + Math.random().toString(36).slice(2, 10);
+
         // ============================================================================
-        // INITIALIZATION & FIREBASE SETUP
+        // INITIALIZATION, ZERO-CONFIG WEBRTC P2P & FIREBASE SETUP
         // ============================================================================
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -780,6 +801,16 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
+        function initZeroConfigP2PSystem() {
+            netMode = 'p2p';
+            currentUser = { uid: localPlayerUid };
+            document.getElementById('userIdDisplay').textContent = `ID: ${localPlayerUid}`;
+            setOnlineBadge(true, "全球雲端直連就緒 (GitHub 免設定)");
+            const badge = document.getElementById('netEngineBadge');
+            if (badge) badge.textContent = "GitHub P2P 直連引擎就緒";
+            checkUrlRoomAutoJoin();
+        }
+
         async function initFirebaseSystem(overrideConfigObj = null) {
             try {
                 let rawConfig = overrideConfigObj || CUSTOM_FIREBASE_CONFIG;
@@ -787,7 +818,8 @@
                     rawConfig = JSON.parse(__firebase_config);
                 }
                 if (!rawConfig) {
-                    setOnlineBadge(false, "單機模式 (點擊右側可設定雲端)");
+                    // Automatically enable Zero-Config WebRTC P2P when deployed to GitHub Pages!
+                    initZeroConfigP2PSystem();
                     return;
                 }
                 const [appMod, authMod, fsMod] = await Promise.all([
@@ -807,17 +839,20 @@
                 }
 
                 authMod.onAuthStateChanged(auth, (user) => {
-                    currentUser = user;
                     if (user) {
-                        setOnlineBadge(true, "雲端多人連線就緒");
+                        currentUser = user;
+                        netMode = 'firebase';
+                        setOnlineBadge(true, "雲端多人大廳就緒");
                         document.getElementById('userIdDisplay').textContent = `ID: ${user.uid}`;
+                        const badge = document.getElementById('netEngineBadge');
+                        if (badge) badge.textContent = "Firebase 雲端同步引擎";
                         subscribePublicRooms();
                         checkUrlRoomAutoJoin();
                     }
                 });
             } catch (err) {
-                console.warn("Firebase init fallback to local:", err);
-                setOnlineBadge(false, "離線單機模式");
+                console.warn("Firebase fallback to Zero-Config P2P:", err);
+                initZeroConfigP2PSystem();
             }
         }
 
@@ -2640,17 +2675,14 @@
         }
 
         window.createOnlineRoom = async function() {
-            if (!db || !currentUser || !fbOps) {
-                showToast("雲端連線尚未就緒，請先點擊左下角「公開發佈設定」或使用單機模式", "warn");
-                return;
-            }
             window.updateConfigLabels();
             const roomCode = String(Math.floor(1000 + Math.random() * 9000));
             const myName = (document.getElementById('playerNameInput').value || "指揮官").trim();
 
             // Build initial roster: Host + Configured AI Bots (up to 8 total)
+            const myUid = currentUser ? currentUser.uid : localPlayerUid;
             const initialPlayers = [
-                { uid: currentUser.uid, name: myName, colorIdx: 0, isBot: false, alive: true }
+                { uid: myUid, name: myName, colorIdx: 0, isBot: false, alive: true }
             ];
             const initialAiCount = Math.min(7, config.botCount);
             for (let b = 0; b < initialAiCount; b++) {
@@ -2663,9 +2695,15 @@
                 });
             }
 
+            // ZERO-CONFIG P2P MODE FOR GITHUB PAGES
+            if (netMode === 'p2p' || !db || !fbOps) {
+                createP2PHostRoom(roomCode, myUid, myName, initialPlayers, initialAiCount);
+                return;
+            }
+
             const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
             await fbOps.setDoc(roomRef, {
-                hostUid: currentUser.uid,
+                hostUid: myUid,
                 hostName: myName,
                 status: 'waiting',
                 width: config.width,
@@ -2684,13 +2722,197 @@
             showToast(`已建立多人房間 #${roomCode}，可隨時增減 AI 或邀請多位朋友加入！`);
         };
 
+        // ============================================================================
+        // GITHUB ZERO-CONFIG WEBRTC P2P MULTIPLAYER ENGINE (PeerJS)
+        // ============================================================================
+        function createP2PHostRoom(roomCode, myUid, myName, initialPlayers, initialAiCount) {
+            if (typeof Peer === 'undefined') {
+                showToast("P2P 連線模組載入中，請稍候再試", "warn");
+                return;
+            }
+            cleanupPeerConnections();
+            currentRoomId = roomCode;
+            pendingClientMoves = {};
+            lastProcessedClientSeq = {};
+
+            activeRoomRawData = {
+                hostUid: myUid,
+                hostName: myName,
+                status: 'waiting',
+                width: config.width,
+                height: config.height,
+                mountainDensity: config.mountainDensity,
+                cityDensity: config.cityDensity,
+                speed: config.speed,
+                botCount: initialAiCount,
+                visionMode: config.visionMode,
+                allowRelocate: config.allowRelocate,
+                players: JSON.stringify(initialPlayers),
+                createdAt: Date.now()
+            };
+
+            peerInstance = new Peer(P2P_ROOM_PREFIX + roomCode);
+            peerInstance.on('open', () => {
+                renderActiveRoomUI(roomCode, activeRoomRawData);
+                showToast(`已建立全球直連房間 #${roomCode}！複製邀請連結即可與朋友連線！`);
+            });
+
+            peerInstance.on('connection', (conn) => {
+                conn.on('data', (msg) => {
+                    handleP2PHostReceivedMessage(conn, msg);
+                });
+                conn.on('close', () => {
+                    if (conn.peerUid && activeRoomRawData && activeRoomRawData.status === 'waiting') {
+                        window.hostKickSlot(conn.peerUid);
+                    }
+                    delete hostClientConns[conn.peerUid];
+                });
+            });
+
+            peerInstance.on('error', (err) => {
+                if (err.type === 'unavailable-id') {
+                    // Retry with another code if collision
+                    window.createOnlineRoom();
+                } else {
+                    console.warn("P2P Host warning:", err);
+                }
+            });
+        }
+
+        function handleP2PHostReceivedMessage(conn, msg) {
+            if (!msg || !activeRoomRawData) return;
+
+            if (msg.type === 'join_request') {
+                conn.peerUid = msg.uid;
+                hostClientConns[msg.uid] = conn;
+
+                let pList = JSON.parse(activeRoomRawData.players || "[]");
+                if (!pList.some(p => p.uid === msg.uid)) {
+                    if (pList.length >= 8) {
+                        const botIdx = pList.findIndex(p => p.isBot);
+                        if (botIdx !== -1) {
+                            pList.splice(botIdx, 1);
+                        } else {
+                            conn.send({ type: 'room_full' });
+                            return;
+                        }
+                    }
+                    const firstBotIdx = pList.findIndex(p => p.isBot);
+                    const newHuman = {
+                        uid: msg.uid,
+                        name: msg.name || "指揮官",
+                        colorIdx: 0,
+                        isBot: false,
+                        alive: true
+                    };
+                    if (firstBotIdx === -1) pList.push(newHuman);
+                    else pList.splice(firstBotIdx, 0, newHuman);
+
+                    pList = pList.map((p, idx) => ({ ...p, colorIdx: idx % PLAYER_COLORS.length }));
+                    activeRoomRawData.players = JSON.stringify(pList);
+                    activeRoomRawData.botCount = pList.filter(p => p.isBot).length;
+                }
+                renderActiveRoomUI(currentRoomId, activeRoomRawData);
+                broadcastP2PRoomUpdate();
+            } else if (msg.type === 'client_cmd') {
+                const uid = msg.uid;
+                const cmd = msg.cmd;
+                if (cmd && cmd.seq && (!lastProcessedClientSeq[uid] || cmd.seq > lastProcessedClientSeq[uid])) {
+                    lastProcessedClientSeq[uid] = cmd.seq;
+                    if (!pendingClientMoves[uid]) pendingClientMoves[uid] = [];
+                    pendingClientMoves[uid].push(cmd);
+                }
+            }
+        }
+
+        function broadcastP2PRoomUpdate() {
+            if (!activeRoomRawData) return;
+            const packet = {
+                type: 'room_sync',
+                roomId: currentRoomId,
+                roomData: activeRoomRawData
+            };
+            Object.values(hostClientConns).forEach(conn => {
+                if (conn && conn.open) {
+                    conn.send(packet);
+                }
+            });
+        }
+
+        function joinP2PRoomAsClient(roomCode) {
+            if (typeof Peer === 'undefined') {
+                showToast("P2P 連線模組載入中，請稍候再試", "warn");
+                return;
+            }
+            cleanupPeerConnections();
+            currentRoomId = roomCode;
+            const myUid = currentUser ? currentUser.uid : localPlayerUid;
+            const myName = (document.getElementById('playerNameInput').value || "指揮官").trim();
+
+            showToast(`正在連線至房間 #${roomCode}...`);
+            peerInstance = new Peer();
+
+            peerInstance.on('open', () => {
+                const conn = peerInstance.connect(P2P_ROOM_PREFIX + roomCode, { reliable: true });
+                clientHostConn = conn;
+
+                conn.on('open', () => {
+                    conn.send({
+                        type: 'join_request',
+                        uid: myUid,
+                        name: myName
+                    });
+                    showToast(`成功加入房間 #${roomCode}！`);
+                });
+
+                conn.on('data', (msg) => {
+                    if (!msg) return;
+                    if (msg.type === 'room_full') {
+                        showToast("該房間已滿 8 名真人玩家！", "danger");
+                        leaveOnlineRoom();
+                        return;
+                    }
+                    if (msg.type === 'room_sync' && msg.roomData) {
+                        activeRoomRawData = msg.roomData;
+                        renderActiveRoomUI(roomCode, activeRoomRawData);
+                        syncClientGameFromRoomData(activeRoomRawData);
+                    }
+                });
+
+                conn.on('close', () => {
+                    showToast("房主已關閉房間或連線中斷", "warn");
+                    leaveOnlineRoom();
+                });
+            });
+
+            peerInstance.on('error', (err) => {
+                showToast(`無法連線至房號 #${roomCode}，請確認房號是否正確且房主在線上`, "danger");
+                console.warn("P2P Client error:", err);
+            });
+        }
+
+        function cleanupPeerConnections() {
+            Object.values(hostClientConns).forEach(c => {
+                try { c.close(); } catch (e) {}
+            });
+            hostClientConns = {};
+            if (clientHostConn) {
+                try { clientHostConn.close(); } catch (e) {}
+                clientHostConn = null;
+            }
+            if (peerInstance) {
+                try { peerInstance.destroy(); } catch (e) {}
+                peerInstance = null;
+            }
+        }
+
         window.copyShareRoomLink = function() {
             if (!currentRoomId) return;
             let shareText = `來《Generals.io 戰術復刻版》跟我對戰！房號：${currentRoomId}`;
             try {
                 const url = new URL(window.location.href);
                 url.searchParams.set('room', currentRoomId);
-                shareText = `${url.toString()} (房號: ${currentRoomId})`;
+                shareText = `${url.toString()}`;
             } catch (e) {}
 
             const tempInput = document.createElement('textarea');
@@ -2699,12 +2921,13 @@
             tempInput.select();
             document.execCommand('copy');
             tempInput.remove();
-            showToast(`已複製房間邀請資訊 (#${currentRoomId})！`);
+            showToast(`已複製專屬對戰連結 (房號 #${currentRoomId})！傳給朋友點開即可直接進房！`);
         };
 
         window.hostModifyRoomAI = async function(delta) {
-            if (!db || !currentRoomId || !currentUser || !fbOps || !activeRoomRawData) return;
-            if (activeRoomRawData.hostUid !== currentUser.uid) return;
+            if (!currentRoomId || !activeRoomRawData) return;
+            const myUid = currentUser ? currentUser.uid : localPlayerUid;
+            if (activeRoomRawData.hostUid !== myUid) return;
 
             let pList = JSON.parse(activeRoomRawData.players || "[]");
             if (delta > 0) {
@@ -2738,25 +2961,49 @@
 
             // Re-index colors cleanly
             pList = pList.map((p, idx) => ({ ...p, colorIdx: idx % PLAYER_COLORS.length }));
+            activeRoomRawData.players = JSON.stringify(pList);
+            activeRoomRawData.botCount = pList.filter(p => p.isBot).length;
+
+            if (netMode === 'p2p' || !db || !fbOps) {
+                renderActiveRoomUI(currentRoomId, activeRoomRawData);
+                broadcastP2PRoomUpdate();
+                return;
+            }
+
             const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
             await fbOps.updateDoc(roomRef, {
-                players: JSON.stringify(pList),
-                botCount: pList.filter(p => p.isBot).length
+                players: activeRoomRawData.players,
+                botCount: activeRoomRawData.botCount
             });
         };
 
         window.hostKickSlot = async function(targetUid) {
-            if (!db || !currentRoomId || !currentUser || !fbOps || !activeRoomRawData) return;
-            if (activeRoomRawData.hostUid !== currentUser.uid) return;
+            if (!currentRoomId || !activeRoomRawData) return;
+            const myUid = currentUser ? currentUser.uid : localPlayerUid;
+            if (activeRoomRawData.hostUid !== myUid) return;
+
             let pList = JSON.parse(activeRoomRawData.players || "[]");
             pList = pList.filter(p => p.uid !== targetUid).map((p, idx) => ({
                 ...p,
                 colorIdx: idx % PLAYER_COLORS.length
             }));
+            activeRoomRawData.players = JSON.stringify(pList);
+            activeRoomRawData.botCount = pList.filter(p => p.isBot).length;
+
+            if (netMode === 'p2p' || !db || !fbOps) {
+                if (hostClientConns[targetUid]) {
+                    try { hostClientConns[targetUid].close(); } catch (e) {}
+                    delete hostClientConns[targetUid];
+                }
+                renderActiveRoomUI(currentRoomId, activeRoomRawData);
+                broadcastP2PRoomUpdate();
+                return;
+            }
+
             const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
             await fbOps.updateDoc(roomRef, {
-                players: JSON.stringify(pList),
-                botCount: pList.filter(p => p.isBot).length
+                players: activeRoomRawData.players,
+                botCount: activeRoomRawData.botCount
             });
         };
 
@@ -2770,8 +3017,8 @@
         };
 
         window.joinOnlineRoom = async function(roomCode) {
-            if (!db || !currentUser || !fbOps) {
-                showToast("雲端服務未連線", "warn");
+            if (netMode === 'p2p' || !db || !fbOps) {
+                joinP2PRoomAsClient(roomCode);
                 return;
             }
             const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
@@ -2816,15 +3063,80 @@
             listenToActiveRoom(roomCode);
         };
 
+        function renderActiveRoomUI(roomCode, data) {
+            document.getElementById('activeRoomBox').classList.remove('hidden');
+            document.getElementById('roomCodeBadge').textContent = `房號: ${roomCode}`;
+
+            const myUid = currentUser ? currentUser.uid : localPlayerUid;
+            const pList = JSON.parse(data.players || "[]");
+            const isHost = data.hostUid === myUid;
+
+            const humanCount = pList.filter(p => !p.isBot).length;
+            const aiCount = pList.filter(p => p.isBot).length;
+            document.getElementById('roomSlotCounterText').textContent = `參戰席位 (${pList.length} / 8) — 真人玩家 ${humanCount} 名 • AI 對手 ${aiCount} 名`;
+            document.getElementById('roomSpecsText').textContent = `${data.width}x${data.height} | 山脈 ${data.mountainDensity}% | 城市 ${data.cityDensity}% | ${data.speed}x`;
+
+            const slotsHtml = [];
+            for (let s = 0; s < 8; s++) {
+                const p = pList[s];
+                if (p) {
+                    const c = PLAYER_COLORS[s % PLAYER_COLORS.length];
+                    const canKick = isHost && p.uid !== myUid;
+                    slotsHtml.push(`
+                        <div class="p-2 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-1.5 truncate">
+                                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${c.hex}"></span>
+                                <span class="font-bold text-white truncate">${p.name}</span>
+                                <span class="text-[10px] px-1 rounded ${p.isBot ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}">${p.isBot ? 'AI' : '玩家'}</span>
+                            </div>
+                            ${canKick ? `<button onclick="hostKickSlot('${p.uid}')" class="text-slate-400 hover:text-rose-400 ml-1" title="移除此席位"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                        </div>
+                    `);
+                } else {
+                    slotsHtml.push(`
+                        <div class="p-2 rounded-xl bg-slate-950/50 border border-dashed border-slate-800 flex items-center justify-center text-[11px] text-slate-500">
+                            空位 (等待加入)
+                        </div>
+                    `);
+                }
+            }
+            document.getElementById('roomPlayersList').innerHTML = slotsHtml.join('');
+
+            document.getElementById('btnHostStartOnline').classList.toggle('hidden', !isHost);
+            document.getElementById('hostAiControlGroup').classList.toggle('hidden', !isHost);
+        }
+
+        function syncClientGameFromRoomData(data) {
+            const myUid = currentUser ? currentUser.uid : localPlayerUid;
+            const isHost = data.hostUid === myUid;
+            if (data.status === 'playing' && !isHost && data.gameState) {
+                const stateObj = typeof data.gameState === 'string' ? JSON.parse(data.gameState) : data.gameState;
+                const myIdx = Math.max(0, stateObj.players.findIndex(p => p.uid === myUid));
+
+                if (game.mode !== 'online_client' || !game.isRunning) {
+                    config.visionMode = data.visionMode || 'standard';
+                    config.allowRelocate = data.allowRelocate !== undefined ? data.allowRelocate : true;
+                    setupAndLaunchMatch('online_client', data.width, data.height, stateObj.players, myIdx, stateObj);
+                } else {
+                    game.turn = stateObj.turn;
+                    game.terrain = new Uint8Array(stateObj.terrain);
+                    game.owner = new Int8Array(stateObj.owner);
+                    game.army = new Int32Array(stateObj.army);
+                    game.players = stateObj.players;
+                    updateRelocateButtonUI();
+                    recordTurnSnapshot();
+                    updateHudAndLeaderboard();
+                    checkVictoryCondition();
+                }
+            }
+        }
+
         function listenToActiveRoom(roomCode) {
             if (roomUnsubscribe) roomUnsubscribe();
             currentRoomId = roomCode;
             pendingClientMoves = {};
             lastProcessedClientSeq = {};
             const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
-
-            document.getElementById('activeRoomBox').classList.remove('hidden');
-            document.getElementById('roomCodeBadge').textContent = `房號: ${roomCode}`;
 
             roomUnsubscribe = fbOps.onSnapshot(roomRef, (snap) => {
                 if (!snap.exists()) {
@@ -2833,45 +3145,11 @@
                 }
                 const data = snap.data();
                 activeRoomRawData = data;
-                const pList = JSON.parse(data.players || "[]");
-                const isHost = data.hostUid === currentUser.uid;
+                const myUid = currentUser ? currentUser.uid : localPlayerUid;
+                const isHost = data.hostUid === myUid;
 
-                const humanCount = pList.filter(p => !p.isBot).length;
-                const aiCount = pList.filter(p => p.isBot).length;
-                document.getElementById('roomSlotCounterText').textContent = `參戰席位 (${pList.length} / 8) — 真人玩家 ${humanCount} 名 • AI 對手 ${aiCount} 名`;
-                document.getElementById('roomSpecsText').textContent = `${data.width}x${data.height} | 山脈 ${data.mountainDensity}% | 城市 ${data.cityDensity}% | ${data.speed}x`;
+                renderActiveRoomUI(roomCode, data);
 
-                // Render 8-Slot Grid showing all Humans, Bots, and Open Slots
-                const slotsHtml = [];
-                for (let s = 0; s < 8; s++) {
-                    const p = pList[s];
-                    if (p) {
-                        const c = PLAYER_COLORS[s % PLAYER_COLORS.length];
-                        const canKick = isHost && p.uid !== currentUser.uid;
-                        slotsHtml.push(`
-                            <div class="p-2 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-between text-xs">
-                                <div class="flex items-center gap-1.5 truncate">
-                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${c.hex}"></span>
-                                    <span class="font-bold text-white truncate">${p.name}</span>
-                                    <span class="text-[10px] px-1 rounded ${p.isBot ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}">${p.isBot ? 'AI' : '玩家'}</span>
-                                </div>
-                                ${canKick ? `<button onclick="hostKickSlot('${p.uid}')" class="text-slate-400 hover:text-rose-400 ml-1" title="移除此席位"><i class="fa-solid fa-xmark"></i></button>` : ''}
-                            </div>
-                        `);
-                    } else {
-                        slotsHtml.push(`
-                            <div class="p-2 rounded-xl bg-slate-950/50 border border-dashed border-slate-800 flex items-center justify-center text-[11px] text-slate-500">
-                                空位 (等待加入)
-                            </div>
-                        `);
-                    }
-                }
-                document.getElementById('roomPlayersList').innerHTML = slotsHtml.join('');
-
-                document.getElementById('btnHostStartOnline').classList.toggle('hidden', !isHost);
-                document.getElementById('hostAiControlGroup').classList.toggle('hidden', !isHost);
-
-                // Collect individual per-player move fields (`move_<uid>`) so multiple players never overwrite each other!
                 if (isHost) {
                     Object.keys(data).forEach(k => {
                         if (k.startsWith('move_')) {
@@ -2892,39 +3170,17 @@
                     });
                 }
 
-                // If game started and client is still in lobby, launch client game
-                if (data.status === 'playing' && !isHost && data.gameState) {
-                    const stateObj = JSON.parse(data.gameState);
-                    const myIdx = Math.max(0, stateObj.players.findIndex(p => p.uid === currentUser.uid));
-
-                    if (game.mode !== 'online_client' || !game.isRunning) {
-                        config.visionMode = data.visionMode || 'standard';
-                        config.allowRelocate = data.allowRelocate !== undefined ? data.allowRelocate : true;
-                        setupAndLaunchMatch('online_client', data.width, data.height, stateObj.players, myIdx, stateObj);
-                    } else {
-                        // Sync latest turn state from Host
-                        game.turn = stateObj.turn;
-                        game.terrain = new Uint8Array(stateObj.terrain);
-                        game.owner = new Int8Array(stateObj.owner);
-                        game.army = new Int32Array(stateObj.army);
-                        game.players = stateObj.players;
-                        updateRelocateButtonUI();
-                        recordTurnSnapshot();
-                        updateHudAndLeaderboard();
-                        checkVictoryCondition();
-                    }
-                }
+                syncClientGameFromRoomData(data);
             }, (err) => {
                 console.warn("Room snapshot error:", err);
             });
         }
 
         window.hostStartOnlineGame = async function() {
-            if (!db || !currentRoomId || !currentUser || !fbOps) return;
-            const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
-            const snap = await fbOps.getDoc(roomRef);
-            if (!snap.exists()) return;
-            const data = snap.data();
+            if (!currentRoomId || !activeRoomRawData) return;
+            const data = activeRoomRawData;
+            const myUid = currentUser ? currentUser.uid : localPlayerUid;
+
             let players = JSON.parse(data.players || "[]").map((p, i) => ({
                 id: i,
                 uid: p.uid,
@@ -2958,56 +3214,86 @@
             config.visionMode = data.visionMode || 'standard';
             config.allowRelocate = data.allowRelocate !== undefined ? data.allowRelocate : true;
 
-            const myHostIdx = Math.max(0, players.findIndex(p => p.uid === currentUser.uid));
+            const myHostIdx = Math.max(0, players.findIndex(p => p.uid === myUid));
             setupAndLaunchMatch('online_host', data.width, data.height, players, myHostIdx);
             await broadcastHostStateToFirestore('playing');
         };
 
         async function broadcastHostStateToFirestore(statusOverride = null) {
-            if (!db || !currentRoomId || !fbOps) return;
+            if (!currentRoomId) return;
+            const payload = {
+                turn: game.turn,
+                terrain: Array.from(game.terrain),
+                owner: Array.from(game.owner),
+                army: Array.from(game.army),
+                players: game.players,
+                allowRelocate: game.allowRelocate
+            };
+
+            if (netMode === 'p2p' || !db || !fbOps) {
+                if (activeRoomRawData) {
+                    if (statusOverride) activeRoomRawData.status = statusOverride;
+                    activeRoomRawData.gameState = payload;
+                    broadcastP2PRoomUpdate();
+                }
+                return;
+            }
+
             try {
                 const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
-                const payload = {
-                    turn: game.turn,
-                    terrain: Array.from(game.terrain),
-                    owner: Array.from(game.owner),
-                    army: Array.from(game.army),
-                    players: game.players,
-                    allowRelocate: game.allowRelocate
-                };
                 const updateData = { gameState: JSON.stringify(payload) };
                 if (statusOverride) updateData.status = statusOverride;
                 await fbOps.updateDoc(roomRef, updateData);
             } catch (e) {}
         }
 
-        // Per-player dedicated field (`move_<uid>`) prevents race conditions when 2+ clients move at the same time
+        // Per-player dedicated command channel (supports both WebRTC P2P and Firebase)
         async function sendClientMoveToHost(from, to, isHalf) {
-            if (!db || !currentRoomId || !currentUser || !fbOps) return;
+            if (!currentRoomId) return;
+            const myUid = currentUser ? currentUser.uid : localPlayerUid;
+            const cmdObj = {
+                type: 'move',
+                from,
+                to,
+                isHalf,
+                seq: Date.now() + Math.random()
+            };
+
+            if (netMode === 'p2p' || !db || !fbOps) {
+                if (clientHostConn && clientHostConn.open) {
+                    clientHostConn.send({ type: 'client_cmd', uid: myUid, cmd: cmdObj });
+                }
+                return;
+            }
+
             try {
                 const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
                 const updatePayload = {};
-                updatePayload[`move_${currentUser.uid}`] = JSON.stringify({
-                    type: 'move',
-                    from,
-                    to,
-                    isHalf,
-                    seq: Date.now() + Math.random()
-                });
+                updatePayload[`move_${myUid}`] = JSON.stringify(cmdObj);
                 await fbOps.updateDoc(roomRef, updatePayload);
             } catch (e) {}
         }
 
         async function sendClientRelocateToHost(targetCityIdx) {
-            if (!db || !currentRoomId || !currentUser || !fbOps) return;
+            if (!currentRoomId) return;
+            const myUid = currentUser ? currentUser.uid : localPlayerUid;
+            const cmdObj = {
+                type: 'relocate',
+                targetCityIdx,
+                seq: Date.now() + Math.random()
+            };
+
+            if (netMode === 'p2p' || !db || !fbOps) {
+                if (clientHostConn && clientHostConn.open) {
+                    clientHostConn.send({ type: 'client_cmd', uid: myUid, cmd: cmdObj });
+                }
+                return;
+            }
+
             try {
                 const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
                 const updatePayload = {};
-                updatePayload[`move_${currentUser.uid}`] = JSON.stringify({
-                    type: 'relocate',
-                    targetCityIdx,
-                    seq: Date.now() + Math.random()
-                });
+                updatePayload[`move_${myUid}`] = JSON.stringify(cmdObj);
                 await fbOps.updateDoc(roomRef, updatePayload);
             } catch (e) {}
         }
@@ -3017,7 +3303,9 @@
                 roomUnsubscribe();
                 roomUnsubscribe = null;
             }
+            cleanupPeerConnections();
             currentRoomId = null;
+            activeRoomRawData = null;
             document.getElementById('activeRoomBox').classList.add('hidden');
         };
 
