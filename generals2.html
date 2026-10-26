@@ -1,0 +1,3053 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Generals.io 戰術復刻版 - 試玩版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+        
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+        input[type=range] {
+            accent-color: #10b981;
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-tactical {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-tactical:active {
+            transform: scale(0.96);
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+        canvas:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none">
+
+    <!-- ==================== CANVAS LAYER ==================== -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
+
+    <!-- ==================== TOAST NOTIFICATION ==================== -->
+    <div id="toastContainer" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none"></div>
+
+    <!-- ==================== LOBBY / MAIN MENU OVERLAY ==================== -->
+    <div id="lobbyScreen" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+        <div class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6 my-auto">
+            
+            <!-- Left Column: Title, Player Profile & Mode Tabs -->
+            <div class="lg:col-span-5 flex flex-col justify-between glass-panel rounded-2xl p-6 shadow-2xl border border-slate-800">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">
+                            <i class="fa-solid fa-crown"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                                GENERALS <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">PROTOTYPE</span>
+                            </h1>
+                            <p class="text-xs text-slate-400">即時戰略領地爭奪・高自由度沙盒對戰</p>
+                        </div>
+                    </div>
+
+                    <!-- Player Name Input -->
+                    <div class="mt-5">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">指揮官代號 (暱稱)</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user-shield absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                            <input id="playerNameInput" type="text" maxlength="14" value="指揮官Alpha" 
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-emerald-500 transition">
+                        </div>
+                    </div>
+
+                    <!-- Mode Switcher Tabs -->
+                    <div class="mt-5">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">選擇戰鬥模式</label>
+                        <div class="grid grid-cols-3 gap-2 p-1 bg-slate-900 rounded-xl border border-slate-800">
+                            <button onclick="switchLobbyTab('single')" id="tabBtnSingle" class="py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
+                                <i class="fa-solid fa-robot"></i> 單人練習 AI
+                            </button>
+                            <button onclick="switchLobbyTab('online')" id="tabBtnOnline" class="py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white">
+                                <i class="fa-solid fa-globe"></i> 線上多人對戰
+                            </button>
+                            <button onclick="switchLobbyTab('replays')" id="tabBtnReplays" class="py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white">
+                                <i class="fa-solid fa-film"></i> 戰役回放
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Core Rules Reminder Box -->
+                    <div class="mt-5 p-4 rounded-xl bg-slate-900/70 border border-slate-800/90 text-xs space-y-2 text-slate-300">
+                        <div class="font-bold text-emerald-400 flex items-center gap-1.5 mb-1">
+                            <i class="fa-solid fa-book-journal-whills"></i> 核心戰鬥與經濟規則
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-amber-400 font-bold">•</span>
+                            <span><strong class="text-white">主堡 & 城市增援：</strong>固定每 <span class="mono text-emerald-400 font-bold">1</span> 回合自動 <span class="mono text-emerald-400 font-bold">+1</span> 兵力。</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-amber-400 font-bold">•</span>
+                            <span><strong class="text-white">佔領空地增援：</strong>固定每 <span class="mono text-sky-400 font-bold">25</span> 回合全體領地 <span class="mono text-sky-400 font-bold">+1</span> 兵力。</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-amber-400 font-bold">•</span>
+                            <span><strong class="text-white">點擊分兵 50%：</strong>點擊已選取的己方格子第二下（或按 <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono">Z</kbd>），立即切換 <span class="text-amber-400 font-bold">50% 分兵出擊</span>！</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-amber-400 font-bold">•</span>
+                            <span><strong class="text-white">戰術遷都 (選配)：</strong>開啟時每局可按 <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono">M</kbd> 將主堡移至任一已佔領城市 <span class="text-amber-400 font-bold">1 次</span>。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connection / User ID Footer -->
+                <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
+                    <span id="onlineStatusBadge" class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> 雲端連線準備中...
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openDeployGuideModal()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold transition flex items-center gap-1" title="查看如何將此遊戲公開發佈到網路上">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> 公開發佈設定
+                        </button>
+                        <span class="mono truncate max-w-[120px]" id="userIdDisplay">ID: 本地模式</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Map Parameters & Mode Specific Actions -->
+            <div class="lg:col-span-7 glass-panel rounded-2xl p-6 shadow-2xl border border-slate-800 flex flex-col justify-between">
+                
+                <!-- Map & Game Configurator (Shared by Singleplayer & Host Room) -->
+                <div id="mapConfigSection">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                        <div>
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-sliders text-emerald-400"></i> 戰場地圖與參數設定
+                            </h2>
+                            <p class="text-xs text-slate-400">支援超大 100x100 網格、僅保留純粹「山脈」與「城市」</p>
+                        </div>
+                        <button onclick="resetDefaultSettings()" class="text-xs text-slate-400 hover:text-emerald-400 transition flex items-center gap-1">
+                            <i class="fa-solid fa-rotate-left"></i> 恢復預設
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Map Width -->
+                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="font-semibold text-slate-300"><i class="fa-solid fa-arrows-left-right text-slate-500 mr-1"></i> 地圖寬度 (Width)</span>
+                                <span id="lblMapWidth" class="mono font-bold text-emerald-400">30 格</span>
+                            </div>
+                            <input id="inpMapWidth" type="range" min="10" max="100" step="2" value="30" oninput="updateConfigLabels()" class="w-full cursor-pointer">
+                            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                                <span>最小 10</span>
+                                <span>標準 30</span>
+                                <span>極限 100</span>
+                            </div>
+                        </div>
+
+                        <!-- Map Height -->
+                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="font-semibold text-slate-300"><i class="fa-solid fa-arrows-up-down text-slate-500 mr-1"></i> 地圖高度 (Height)</span>
+                                <span id="lblMapHeight" class="mono font-bold text-emerald-400">30 格</span>
+                            </div>
+                            <input id="inpMapHeight" type="range" min="10" max="100" step="2" value="30" oninput="updateConfigLabels()" class="w-full cursor-pointer">
+                            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                                <span>最小 10</span>
+                                <span>標準 30</span>
+                                <span>極限 100</span>
+                            </div>
+                        </div>
+
+                        <!-- Mountain Density -->
+                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="font-semibold text-slate-300"><i class="fa-solid fa-mountain text-slate-400 mr-1"></i> 山脈密度 (不可通行)</span>
+                                <span id="lblMountainDensity" class="mono font-bold text-amber-400">18%</span>
+                            </div>
+                            <input id="inpMountainDensity" type="range" min="0" max="38" step="1" value="18" oninput="updateConfigLabels()" class="w-full cursor-pointer">
+                            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                                <span>平原 0%</span>
+                                <span>標準 18%</span>
+                                <span>迷宮 38%</span>
+                            </div>
+                        </div>
+
+                        <!-- City Density -->
+                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="font-semibold text-slate-300"><i class="fa-solid fa-city text-slate-400 mr-1"></i> 城市密度 (每回合+1兵)</span>
+                                <span id="lblCityDensity" class="mono font-bold text-sky-400">4.0%</span>
+                            </div>
+                            <input id="inpCityDensity" type="range" min="0" max="15" step="0.5" value="4" oninput="updateConfigLabels()" class="w-full cursor-pointer">
+                            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                                <span>無城 0%</span>
+                                <span>標準 4%</span>
+                                <span>密集 15%</span>
+                            </div>
+                        </div>
+
+                        <!-- Game Speed -->
+                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="font-semibold text-slate-300"><i class="fa-solid fa-gauge-high text-slate-400 mr-1"></i> 遊戲速度 (回合頻率)</span>
+                                <span id="lblGameSpeed" class="mono font-bold text-purple-400">1.0x</span>
+                            </div>
+                            <div class="grid grid-cols-5 gap-1.5 mt-2">
+                                <button onclick="setLobbySpeed(0.5)" data-speed="0.5" class="speed-opt-btn py-1 rounded bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">0.5x</button>
+                                <button onclick="setLobbySpeed(1)" data-speed="1" class="speed-opt-btn py-1 rounded bg-emerald-600 text-xs font-mono text-white font-bold border border-emerald-400">1x</button>
+                                <button onclick="setLobbySpeed(1.5)" data-speed="1.5" class="speed-opt-btn py-1 rounded bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">1.5x</button>
+                                <button onclick="setLobbySpeed(2)" data-speed="2" class="speed-opt-btn py-1 rounded bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">2x</button>
+                                <button onclick="setLobbySpeed(4)" data-speed="4" class="speed-opt-btn py-1 rounded bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">4x</button>
+                            </div>
+                        </div>
+
+                        <!-- AI Bot Count -->
+                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="font-semibold text-slate-300"><i class="fa-solid fa-microchip text-slate-400 mr-1"></i> AI 對手數量</span>
+                                <span id="lblBotCount" class="mono font-bold text-rose-400">3 名 AI</span>
+                            </div>
+                            <input id="inpBotCount" type="range" min="1" max="7" step="1" value="3" oninput="updateConfigLabels()" class="w-full cursor-pointer">
+                            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                                <span>1v1 單挑</span>
+                                <span>4人混戰</span>
+                                <span>8人全開</span>
+                            </div>
+                        </div>
+
+                        <!-- Vision Mode Selection (Standard vs Blind Fog vs Full) -->
+                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="font-semibold text-slate-300"><i class="fa-solid fa-eye-low-vision text-slate-400 mr-1"></i> 視野與迷霧規則</span>
+                                <span id="lblVisionMode" class="mono font-bold text-amber-400">標準視野</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-1.5 mt-2">
+                                <button onclick="setLobbyVisionMode('standard')" data-vmode="standard" class="vmode-opt-btn py-1.5 px-2 rounded bg-emerald-600 text-[11px] font-bold text-white border border-emerald-400">標準模式</button>
+                                <button onclick="setLobbyVisionMode('blind')" data-vmode="blind" class="vmode-opt-btn py-1.5 px-2 rounded bg-slate-800 text-[11px] font-semibold text-slate-300 border border-slate-700" title="視野外全黑，連自己在地圖哪一角都看不見">全黑迷霧</button>
+                                <button onclick="setLobbyVisionMode('full')" data-vmode="full" class="vmode-opt-btn py-1.5 px-2 rounded bg-slate-800 text-[11px] font-semibold text-slate-300 border border-slate-700">全圖透視</button>
+                            </div>
+                        </div>
+
+                        <!-- Capital Relocation Option ("遷都") -->
+                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-chess-rook text-amber-400"></i> 允許「遷都」機制 (每局1次)
+                                    </div>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">可將主堡轉移至一座已佔領的城市，原主堡變為城市</p>
+                                </div>
+                                <input id="chkAllowRelocate" type="checkbox" checked onchange="updateConfigLabels()" class="w-5 h-5 rounded accent-emerald-500 cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 1: SINGLEPLAYER ACTIONS -->
+                <div id="panelSingle" class="mt-5 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-xs text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-emerald-400"></i>
+                        <span id="visionModeDescText">標準模式：視野內高亮照明，視野外為暗色陰影並顯示山脈障礙。</span>
+                    </div>
+                    <button onclick="startLocalGame()" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 btn-tactical">
+                        <i class="fa-solid fa-play"></i> 立即開始單機對戰
+                    </button>
+                </div>
+
+                <!-- TAB 2: ONLINE MULTIPLAYER LOBBY -->
+                <div id="panelOnline" class="hidden mt-4 pt-4 border-t border-slate-800 space-y-4">
+                    <!-- Room Creation / Join Bar -->
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <button onclick="createOnlineRoom()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow btn-tactical">
+                            <i class="fa-solid fa-plus-circle"></i> 以目前設定建立多人房間
+                        </button>
+                        <div class="flex items-center gap-1.5">
+                            <input id="inpJoinCode" type="text" maxlength="6" placeholder="輸入房號 (如 8492)" class="w-36 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono uppercase text-white focus:outline-none focus:border-emerald-500">
+                            <button onclick="joinRoomByCodeInput()" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs btn-tactical">
+                                加入房間
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Active Waiting Room Box (When inside a room) -->
+                    <div id="activeRoomBox" class="hidden p-4 rounded-xl bg-slate-900 border border-emerald-500/40 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono font-bold text-sm" id="roomCodeBadge">房號: ----</span>
+                                <button onclick="copyShareRoomLink()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 text-xs font-bold flex items-center gap-1 btn-tactical" title="複製邀請連結或房號">
+                                    <i class="fa-solid fa-share-nodes"></i> 複製邀請
+                                </button>
+                                <span class="text-xs text-slate-400" id="roomSpecsText">30x30 | 山脈 18% | 城市 4%</span>
+                            </div>
+                            <button onclick="leaveOnlineRoom()" class="text-xs text-rose-400 hover:text-rose-300 font-semibold">
+                                <i class="fa-solid fa-door-open mr-1"></i>離開房間
+                            </button>
+                        </div>
+
+                        <!-- 8-Slot Player & AI Roster -->
+                        <div>
+                            <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
+                                <span id="roomSlotCounterText">參戰席位 (1 / 8) — 支援多位真人玩家與 AI 混戰</span>
+                                <div id="hostAiControlGroup" class="hidden flex items-center gap-1.5">
+                                    <button onclick="hostModifyRoomAI(1)" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-[11px] flex items-center gap-1 btn-tactical">
+                                        <i class="fa-solid fa-robot"></i> + 新增 AI
+                                    </button>
+                                    <button onclick="hostModifyRoomAI(-1)" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-semibold text-[11px] btn-tactical">
+                                        - 移除 AI
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="roomPlayersList" class="grid grid-cols-2 sm:grid-cols-4 gap-2 py-1"></div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
+                            <span class="text-xs text-slate-400" id="roomHostHint">等待房主開始遊戲... (房主可自由新增 AI 或等待更多玩家加入)</span>
+                            <button id="btnHostStartOnline" onclick="hostStartOnlineGame()" class="hidden px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow btn-tactical">
+                                <i class="fa-solid fa-bolt mr-1"></i> 立即開始多人對戰
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Open Rooms List -->
+                    <div>
+                        <div class="text-xs font-semibold text-slate-400 mb-2 flex items-center justify-between">
+                            <span><i class="fa-solid fa-satellite-dish text-emerald-400 mr-1"></i> 公開對戰大廳房間列表</span>
+                            <span class="text-[11px] text-slate-500">點擊即可加入多位玩家戰局</span>
+                        </div>
+                        <div id="publicRoomsList" class="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                            <div class="text-xs text-slate-500 py-4 text-center bg-slate-900/50 rounded-xl border border-slate-800/60">
+                                目前尚無等待中的公開房間，請點擊上方「建立多人房間」開局！
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: SAVED REPLAYS -->
+                <div id="panelReplays" class="hidden flex-1 flex flex-col justify-between">
+                    <div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-3">
+                            <div>
+                                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i> 歷史戰役回放紀錄
+                                </h2>
+                                <p class="text-xs text-slate-400">支援全圖透視、時間軸拖曳，並可匯出/匯入回放檔案與朋友分享</p>
+                            </div>
+                            <label class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/30 text-xs font-bold cursor-pointer flex items-center gap-1.5 btn-tactical">
+                                <i class="fa-solid fa-file-import"></i> 匯入回放 (.json)
+                                <input type="file" accept=".json" onchange="importReplayFromFile(event)" class="hidden">
+                            </label>
+                        </div>
+                        <div id="savedReplaysContainer" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400">
+                        <span>提示：進行任何單機或線上對戰後，皆可隨時觀看或下載回放檔案分享給其他人</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== DEPLOY & CUSTOM FIREBASE CONFIG MODAL ==================== -->
+    <div id="deployGuideModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+        <div class="glass-panel max-w-xl w-full rounded-2xl p-6 border border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-white">公開發佈與多人連線設定指南</h3>
+                        <p class="text-xs text-slate-400">單一 HTML 檔案即可部署至 GitHub Pages / Vercel / Netlify</p>
+                    </div>
+                </div>
+                <button onclick="closeDeployGuideModal()" class="text-slate-400 hover:text-white text-lg px-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+                <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+                    <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check"></i> 1. 如何把這個遊戲放到網路上公開？
+                    </div>
+                    <p class="text-slate-400">
+                        本遊戲所有程式碼、樣式與音效邏輯皆已完整封裝於這單一一個 <code class="text-amber-300 font-mono">index.html</code> 檔案中。您只需將此檔案上傳至 <strong class="text-white">GitHub Pages</strong>、<strong class="text-white">Vercel</strong>、<strong class="text-white">Netlify</strong> 或任何靜態網頁空間，即可立即獲得公開網址分享給任何人遊玩！
+                    </p>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                    <div class="font-bold text-sky-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-database"></i> 2. 外部網站的「線上多人連線」設定 (選填)
+                    </div>
+                    <p class="text-slate-400">
+                        若您在自己的公開網站上需要啟用「跨裝置線上對戰大廳」，可前往免費的 <span class="text-white font-semibold">Firebase Console</span> 建立專案（開啟 Authentication 匿名登入與 Firestore 資料庫），並將您的 <code class="text-amber-300 font-mono">firebaseConfig</code> JSON 貼在下方或填入程式碼頂端的 <code class="text-amber-300 font-mono">CUSTOM_FIREBASE_CONFIG</code> 中：
+                    </p>
+                    <textarea id="inpCustomFirebaseJson" rows="4" placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "...", "appId": "..."}' class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-[11px] text-emerald-300 focus:outline-none focus:border-emerald-500"></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button onclick="applyCustomFirebaseConfigFromModal()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs btn-tactical">
+                            套用並連線雲端伺服器
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== IN-GAME HUD OVERLAY ==================== -->
+    <div id="gameHud" class="hidden fixed inset-0 pointer-events-none z-20 flex flex-col justify-between p-3 sm:p-4">
+        
+        <!-- Top Bar: Turn Counter, 25-Turn Land Cycle, Speed Control & Leaderboard -->
+        <div class="flex items-start justify-between gap-3">
+            
+            <!-- Top-Left: Turn & Economy Status + Quick Controls -->
+            <div class="flex flex-col gap-2 pointer-events-auto">
+                <div class="glass-panel rounded-2xl p-3 shadow-xl border border-slate-800/90 min-w-[240px] sm:min-w-[280px]">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span id="modeIndicatorBadge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                對戰中
+                            </span>
+                            <span class="text-xs text-slate-400 font-semibold">回合數</span>
+                        </div>
+                        <div class="mono text-xl font-extrabold text-white tracking-tight" id="hudTurnText">
+                            Turn 1
+                        </div>
+                    </div>
+
+                    <!-- 25-Turn Land Reinforcement Progress Bar -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-400 flex items-center gap-1">
+                                <i class="fa-solid fa-seedling text-emerald-400"></i> 領地全體增援 (+1)
+                            </span>
+                            <span id="hudLandCycleText" class="mono font-bold text-sky-400">25 回合後</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                            <div id="hudLandProgressBar" class="h-full bg-gradient-to-r from-emerald-500 to-sky-400 transition-all duration-200" style="width: 4%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Live Game Speed Selector (Available in Local / Host mode) -->
+                    <div id="hudSpeedControlRow" class="mt-2.5 pt-2 border-t border-slate-800/90 flex items-center justify-between gap-2">
+                        <span class="text-[11px] text-slate-400 font-semibold"><i class="fa-solid fa-bolt text-amber-400 mr-1"></i>遊戲速度:</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="changeLiveGameSpeed(0.5)" data-livespeed="0.5" class="live-speed-btn px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">0.5x</button>
+                            <button onclick="changeLiveGameSpeed(1)" data-livespeed="1" class="live-speed-btn px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-600 text-white font-bold">1x</button>
+                            <button onclick="changeLiveGameSpeed(1.5)" data-livespeed="1.5" class="live-speed-btn px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">1.5x</button>
+                            <button onclick="changeLiveGameSpeed(2)" data-livespeed="2" class="live-speed-btn px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">2x</button>
+                            <button onclick="changeLiveGameSpeed(4)" data-livespeed="4" class="live-speed-btn px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">4x</button>
+                            <button onclick="togglePauseGame()" id="btnHudPause" class="ml-1 px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700" title="暫停/繼續 (P)">
+                                <i class="fa-solid fa-pause"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map Viewport & Fog Tools -->
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button onclick="zoomCanvas(1.2)" class="glass-panel px-2.5 py-1.5 rounded-xl text-xs text-slate-300 hover:text-white btn-tactical" title="放大地圖">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i>
+                    </button>
+                    <button onclick="zoomCanvas(0.8)" class="glass-panel px-2.5 py-1.5 rounded-xl text-xs text-slate-300 hover:text-white btn-tactical" title="縮小地圖">
+                        <i class="fa-solid fa-magnifying-glass-minus"></i>
+                    </button>
+                    <button onclick="centerOnGeneral()" class="glass-panel px-3 py-1.5 rounded-xl text-xs text-slate-300 hover:text-emerald-400 font-semibold btn-tactical" title="鏡頭回到主堡 (H)">
+                        <i class="fa-solid fa-crosshairs mr-1"></i>回主堡
+                    </button>
+                    <button id="btnToggleFog" onclick="cycleVisionModeInGame()" class="glass-panel px-3 py-1.5 rounded-xl text-xs text-amber-300 hover:bg-slate-800 font-semibold btn-tactical">
+                        <i class="fa-solid fa-eye mr-1"></i>標準視野
+                    </button>
+                </div>
+            </div>
+
+            <!-- Top-Right: Leaderboard & Match Exit/Replay Buttons -->
+            <div class="flex flex-col items-end gap-2 pointer-events-auto">
+                <div class="glass-panel rounded-2xl p-3 shadow-xl border border-slate-800/90 min-w-[230px] sm:min-w-[270px]">
+                    <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-1.5 mb-1.5">
+                        <span>指揮官勢力</span>
+                        <div class="flex items-center gap-3">
+                            <span class="w-12 text-right">總兵力</span>
+                            <span class="w-10 text-right">領地</span>
+                        </div>
+                    </div>
+                    <div id="leaderboardRows" class="space-y-1 text-xs"></div>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                    <button id="btnEnterReplayNow" onclick="finishAndWatchReplay()" class="glass-panel px-3 py-1.5 rounded-xl text-xs font-semibold text-sky-400 hover:bg-slate-800 border border-sky-500/30 btn-tactical">
+                        <i class="fa-solid fa-film mr-1"></i>觀看回放
+                    </button>
+                    <button onclick="returnToLobby()" class="glass-panel px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-400 hover:bg-slate-800 border border-rose-500/30 btn-tactical">
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i>返回大廳
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Bar: Tactical Action Controls OR Replay Scrubber Bar -->
+        <div class="flex flex-col items-center gap-2 pointer-events-auto">
+            
+            <!-- Capital Relocation Targeting Banner -->
+            <div id="relocatePromptBanner" class="hidden glass-panel px-4 py-2 rounded-xl border border-amber-400 bg-amber-950/80 text-amber-200 text-xs font-bold flex items-center gap-3 shadow-lg animate-bounce">
+                <i class="fa-solid fa-crown text-amber-400"></i>
+                <span>【遷都模式】請點擊地圖上一座您已佔領的「城市」作為新主堡（原主堡將轉為一般城市）</span>
+                <button onclick="cancelRelocateMode()" class="px-2 py-0.5 rounded bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-700 text-[11px]">取消</button>
+            </div>
+
+            <!-- Active Player Combat Controls (Hidden in Replay Mode) -->
+            <div id="combatControlsBar" class="glass-panel px-4 py-2.5 rounded-2xl shadow-2xl border border-slate-800 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                
+                <!-- 50% Split Mode Button -->
+                <button id="btnSplit50" onclick="toggleSplit50Mode()" class="px-3.5 py-2 rounded-xl text-xs font-extrabold border transition flex items-center gap-2 bg-slate-800/90 text-slate-200 border-slate-700 hover:border-amber-400 btn-tactical">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-500" id="splitStatusDot"></span>
+                    <span>分兵 50% <kbd class="ml-1 px-1.5 py-0.5 bg-slate-900 rounded text-[10px] font-mono text-amber-300">Z / 點兩下</kbd></span>
+                </button>
+
+                <!-- Relocate Capital ("遷都") Button -->
+                <button id="btnRelocateCapital" onclick="toggleRelocateMode()" class="px-3.5 py-2 rounded-xl text-xs font-extrabold border transition flex items-center gap-2 bg-slate-800/90 text-amber-300 border-amber-500/40 hover:border-amber-400 btn-tactical">
+                    <i class="fa-solid fa-chess-rook"></i>
+                    <span id="relocateBtnText">遷都 (剩 1 次)</span>
+                    <kbd class="px-1.5 py-0.5 bg-slate-900 rounded text-[10px] font-mono text-amber-300">M</kbd>
+                </button>
+
+                <div class="h-5 w-[1px] bg-slate-800 hidden sm:block"></div>
+
+                <!-- Queue Counter & Clear/Undo -->
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs text-slate-400 mr-1">
+                        預排佇列: <strong id="queueLengthText" class="mono text-emerald-400">0</strong> 步
+                    </span>
+                    <button onclick="undoLastMove()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 btn-tactical" title="撤銷上一步預排 (E)">
+                        <i class="fa-solid fa-rotate-left mr-1"></i>撤銷 <kbd class="text-[10px] font-mono text-slate-400">E</kbd>
+                    </button>
+                    <button onclick="clearMoveQueue()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-xs font-semibold text-rose-300 border border-slate-700 btn-tactical" title="清除所有預排行軍 (Q)">
+                        <i class="fa-solid fa-trash-can mr-1"></i>清空佇列 <kbd class="text-[10px] font-mono text-rose-400">Q</kbd>
+                    </button>
+                </div>
+
+                <div class="h-5 w-[1px] bg-slate-800 hidden md:block"></div>
+
+                <!-- Controls Legend -->
+                <div class="hidden md:flex items-center gap-2 text-[11px] text-slate-400">
+                    <span><kbd class="px-1.5 py-0.5 bg-slate-900 rounded border border-slate-700 text-slate-300 font-mono">WASD / 方向鍵</kbd> 移動兵力</span>
+                    <span>•</span>
+                    <span>拖曳平移 / 滾輪縮放</span>
+                </div>
+            </div>
+
+            <!-- Replay Timeline Controller (Shown only in Replay Mode) -->
+            <div id="replayControllerBar" class="hidden w-full max-w-3xl glass-panel p-4 rounded-2xl shadow-2xl border border-amber-500/40 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-extrabold flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-play"></i> 戰役回放模式
+                        </span>
+                        <span id="replaySummaryTitle" class="text-xs text-slate-300 font-semibold">回合進度</span>
+                    </div>
+                    <div class="mono text-sm font-bold text-amber-400" id="replayTurnIndicator">
+                        1 / 100 回合
+                    </div>
+                </div>
+
+                <!-- Timeline Slider -->
+                <input id="replayScrubber" type="range" min="0" max="0" value="0" oninput="onScrubReplay(this.value)" class="w-full cursor-pointer accent-amber-400">
+
+                <!-- Playback Buttons -->
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="stepReplay(-10)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-mono btn-tactical">-10</button>
+                        <button onclick="stepReplay(-1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 btn-tactical">
+                            <i class="fa-solid fa-backward-step"></i> 上一回合
+                        </button>
+                        <button id="btnReplayPlayPause" onclick="toggleReplayPlayback()" class="px-5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs btn-tactical">
+                            <i class="fa-solid fa-play mr-1"></i> 播放
+                        </button>
+                        <button onclick="stepReplay(1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 btn-tactical">
+                            下一回合 <i class="fa-solid fa-forward-step"></i>
+                        </button>
+                        <button onclick="stepReplay(10)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-mono btn-tactical">+10</button>
+                    </div>
+
+                    <!-- Replay Speed -->
+                    <div class="flex items-center gap-1">
+                        <span class="text-xs text-slate-400 mr-1">回放倍速:</span>
+                        <button onclick="setReplaySpeed(1)" data-rspeed="1" class="replay-speed-btn px-2 py-1 rounded text-xs font-mono bg-amber-500 text-slate-950 font-bold">1x</button>
+                        <button onclick="setReplaySpeed(2)" data-rspeed="2" class="replay-speed-btn px-2 py-1 rounded text-xs font-mono bg-slate-800 text-slate-300">2x</button>
+                        <button onclick="setReplaySpeed(4)" data-rspeed="4" class="replay-speed-btn px-2 py-1 rounded text-xs font-mono bg-slate-800 text-slate-300">4x</button>
+                        <button onclick="setReplaySpeed(8)" data-rspeed="8" class="replay-speed-btn px-2 py-1 rounded text-xs font-mono bg-slate-800 text-slate-300">8x</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==================== VICTORY / GAME OVER MODAL ==================== -->
+    <div id="gameOverModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="glass-panel max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl text-center space-y-4">
+            <div id="modalIconBox" class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+                <h2 id="modalTitle" class="text-2xl font-extrabold text-white">戰役結束！</h2>
+                <p id="modalSubtitle" class="text-sm text-slate-300 mt-1">指揮官獲得最終勝利</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                    <div class="text-slate-400">總進行回合</div>
+                    <div id="modalTotalTurns" class="mono text-lg font-bold text-white mt-0.5">0</div>
+                </div>
+                <div>
+                    <div class="text-slate-400">地圖規模</div>
+                    <div id="modalMapDims" class="mono text-lg font-bold text-emerald-400 mt-0.5">30x30</div>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2.5 pt-2">
+                <button onclick="enterReplayFromModal()" class="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 btn-tactical">
+                    <i class="fa-solid fa-film"></i> 觀看完整回放
+                </button>
+                <button onclick="closeModalAndRestart()" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 btn-tactical">
+                    <i class="fa-solid fa-rotate-right"></i> 再來一局
+                </button>
+                <button onclick="returnToLobby()" class="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs btn-tactical">
+                    返回大廳
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== APPLICATION & FIREBASE SCRIPT ==================== -->
+    <script>
+        // ============================================================================
+        // PUBLIC DEPLOYMENT CONFIG (可自行填入您的 Firebase 設定以在外部空間支援線上對戰)
+        // ============================================================================
+        const CUSTOM_FIREBASE_CONFIG = null; 
+        // 範例: const CUSTOM_FIREBASE_CONFIG = { apiKey: "...", authDomain: "...", projectId: "...", appId: "..." };
+
+        // ============================================================================
+        // CONSTANTS & PLAYER PALETTE
+        // ============================================================================
+        const TILE_EMPTY = 0;
+        const TILE_MOUNTAIN = 1;
+        const TILE_CITY = 2;
+        const TILE_GENERAL = 3;
+
+        const PLAYER_COLORS = [
+            { name: "翡翠軍", hex: "#10b981", dark: "#065f46", border: "#34d399" },
+            { name: "緋紅軍", hex: "#ef4444", dark: "#7f1d1d", border: "#f87171" },
+            { name: "蒼藍軍", hex: "#3b82f6", dark: "#1e3a8a", border: "#60a5fa" },
+            { name: "琥珀軍", hex: "#f59e0b", dark: "#78350f", border: "#fbbf24" },
+            { name: "紫晶軍", hex: "#a855f7", dark: "#581c87", border: "#c084fc" },
+            { name: "青電軍", hex: "#06b6d4", dark: "#164e63", border: "#22d3ee" },
+            { name: "薔薇軍", hex: "#ec4899", dark: "#831843", border: "#f472b6" },
+            { name: "萊姆軍", hex: "#84cc16", dark: "#365314", border: "#a3e635" }
+        ];
+
+        const BOT_NAMES = [
+            "阿爾法AI", "天網戰術家", "鋼鐵將軍", "閃電突擊者", 
+            "深藍指揮官", "風暴獵手", "量子元帥"
+        ];
+
+        // ============================================================================
+        // GLOBAL GAME STATE
+        // ============================================================================
+        let config = {
+            width: 30,
+            height: 30,
+            mountainDensity: 18, // %
+            cityDensity: 4.0,    // %
+            speed: 1.0,          // 1x = 2 turns/sec (500ms per turn)
+            botCount: 3,
+            visionMode: 'standard', // 'standard' | 'blind' | 'full'
+            allowRelocate: true
+        };
+
+        let game = {
+            mode: 'lobby', // 'single', 'online_host', 'online_client', 'replay'
+            isRunning: false,
+            isPaused: false,
+            turn: 1,
+            width: 30,
+            height: 30,
+            terrain: [],   // Uint8Array(width * height)
+            owner: [],     // Int8Array(width * height), -1 for neutral
+            army: [],      // Int32Array(width * height)
+            players: [],   // [{ id, name, colorIdx, isBot, alive, generalIndex, relocateUsed, uid }]
+            myPlayerIndex: 0,
+            selectedTile: -1,
+            split50Mode: false,
+            relocateTargetingMode: false,
+            allowRelocate: true,
+            moveQueue: [], // [{ from, to, isHalf }]
+            botMemory: {}, // AI persistent target state
+            turnTimer: null,
+            // Replay Recording
+            replayHistory: [], // Array of snapshots [{ turn, owner: [...], army: [...], terrain: [...] }]
+            savedReplays: []
+        };
+
+        // Replay Playback State
+        let replayState = {
+            active: false,
+            playing: false,
+            currentFrame: 0,
+            speed: 1,
+            timer: null,
+            data: null
+        };
+
+        // Viewport Camera (Canvas Pan & Zoom)
+        let camera = {
+            x: 0,
+            y: 0,
+            tileSize: 38,
+            isDragging: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            camStartX: 0,
+            camStartY: 0,
+            hasMovedDuringDrag: false
+        };
+
+        // Firebase Online State
+        let db = null;
+        let auth = null;
+        let fbOps = null;
+        let currentUser = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'generals-io-replica-v1';
+        let currentRoomId = null;
+        let roomUnsubscribe = null;
+        let lobbyRoomsUnsubscribe = null;
+        let pendingClientMoves = {}; // uid -> Array of { type, from, to, isHalf, targetCityIdx, seq }
+        let lastProcessedClientSeq = {}; // uid -> last sequence timestamp
+        let activeRoomRawData = null;
+
+        // ============================================================================
+        // INITIALIZATION & FIREBASE SETUP
+        // ============================================================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        async function initFirebaseSystem(overrideConfigObj = null) {
+            try {
+                let rawConfig = overrideConfigObj || CUSTOM_FIREBASE_CONFIG;
+                if (!rawConfig && typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    rawConfig = JSON.parse(__firebase_config);
+                }
+                if (!rawConfig) {
+                    setOnlineBadge(false, "單機模式 (點擊右側可設定雲端)");
+                    return;
+                }
+                const [appMod, authMod, fsMod] = await Promise.all([
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"),
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"),
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")
+                ]);
+                fbOps = fsMod;
+                const app = appMod.initializeApp(rawConfig);
+                auth = authMod.getAuth(app);
+                db = fsMod.getFirestore(app);
+
+                if (!overrideConfigObj && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await authMod.signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await authMod.signInAnonymously(auth);
+                }
+
+                authMod.onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    if (user) {
+                        setOnlineBadge(true, "雲端多人連線就緒");
+                        document.getElementById('userIdDisplay').textContent = `ID: ${user.uid}`;
+                        subscribePublicRooms();
+                        checkUrlRoomAutoJoin();
+                    }
+                });
+            } catch (err) {
+                console.warn("Firebase init fallback to local:", err);
+                setOnlineBadge(false, "離線單機模式");
+            }
+        }
+
+        window.openDeployGuideModal = function() {
+            document.getElementById('deployGuideModal').classList.remove('hidden');
+        };
+
+        window.closeDeployGuideModal = function() {
+            document.getElementById('deployGuideModal').classList.add('hidden');
+        };
+
+        window.applyCustomFirebaseConfigFromModal = async function() {
+            const rawText = document.getElementById('inpCustomFirebaseJson').value.trim();
+            if (!rawText) {
+                showToast("請貼上有效的 Firebase Config JSON", "warn");
+                return;
+            }
+            try {
+                const parsed = JSON.parse(rawText);
+                await initFirebaseSystem(parsed);
+                closeDeployGuideModal();
+                showToast("已成功套用自訂雲端設定！");
+            } catch (e) {
+                showToast("JSON 格式錯誤，請確認包含雙引號與正確括號", "danger");
+            }
+        };
+
+        function checkUrlRoomAutoJoin() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const roomParam = params.get('room');
+                if (roomParam && /^\d{4,6}$/.test(roomParam)) {
+                    window.switchLobbyTab('online');
+                    document.getElementById('inpJoinCode').value = roomParam;
+                    window.joinOnlineRoom(roomParam);
+                }
+            } catch (e) {}
+        }
+
+        function setOnlineBadge(isOnline, text) {
+            const el = document.getElementById('onlineStatusBadge');
+            if (isOnline) {
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> <span class="text-emerald-400 font-semibold">${text}</span>`;
+            } else {
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span> <span>${text}</span>`;
+            }
+        }
+
+        // ============================================================================
+        // UI HELPERS & TOAST NOTIFICATIONS
+        // ============================================================================
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-slate-900/95 border-emerald-500/50 text-emerald-300',
+                warn: 'bg-slate-900/95 border-amber-500/50 text-amber-300',
+                danger: 'bg-rose-950/95 border-rose-500/50 text-rose-200'
+            };
+            toast.className = `px-4 py-2 rounded-xl border shadow-xl text-xs font-bold flex items-center gap-2 transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.innerHTML = `<i class="fa-solid fa-bell"></i> <span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+        window.switchLobbyTab = function(tab) {
+            const tabs = ['single', 'online', 'replays'];
+            tabs.forEach(t => {
+                const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (t === tab) {
+                    btn.className = "py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow";
+                } else {
+                    btn.className = "py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white";
+                }
+            });
+
+            document.getElementById('mapConfigSection').classList.toggle('hidden', tab === 'replays');
+            document.getElementById('panelSingle').classList.toggle('hidden', tab !== 'single');
+            document.getElementById('panelOnline').classList.toggle('hidden', tab !== 'online');
+            document.getElementById('panelReplays').classList.toggle('hidden', tab !== 'replays');
+
+            if (tab === 'replays') {
+                renderSavedReplaysList();
+            }
+        };
+
+        window.updateConfigLabels = function() {
+            config.width = parseInt(document.getElementById('inpMapWidth').value, 10);
+            config.height = parseInt(document.getElementById('inpMapHeight').value, 10);
+            config.mountainDensity = parseInt(document.getElementById('inpMountainDensity').value, 10);
+            config.cityDensity = parseFloat(document.getElementById('inpCityDensity').value);
+            config.botCount = parseInt(document.getElementById('inpBotCount').value, 10);
+            config.allowRelocate = document.getElementById('chkAllowRelocate').checked;
+
+            document.getElementById('lblMapWidth').textContent = `${config.width} 格`;
+            document.getElementById('lblMapHeight').textContent = `${config.height} 格`;
+            document.getElementById('lblMountainDensity').textContent = `${config.mountainDensity}%`;
+            document.getElementById('lblCityDensity').textContent = `${config.cityDensity.toFixed(1)}%`;
+            document.getElementById('lblBotCount').textContent = `${config.botCount} 名 AI`;
+        };
+
+        window.setLobbyVisionMode = function(vmode) {
+            config.visionMode = vmode;
+            const labels = {
+                standard: '標準視野',
+                blind: '全黑迷霧',
+                full: '全圖透視'
+            };
+            const descs = {
+                standard: '標準模式：視野內高亮照明，視野外為深暗色陰影並顯示山脈與障礙。',
+                blind: '全黑迷霧模式：視野外完全漆黑且不顯示地圖邊框，連自己出生在地圖哪一角都無從得知！',
+                full: '全圖透視模式：無任何迷霧遮蔽，可直接觀察全場所有動向。'
+            };
+            document.getElementById('lblVisionMode').textContent = labels[vmode] || '標準視野';
+            document.getElementById('visionModeDescText').textContent = descs[vmode] || '';
+
+            document.querySelectorAll('.vmode-opt-btn').forEach(btn => {
+                const m = btn.getAttribute('data-vmode');
+                if (m === vmode) {
+                    btn.className = "vmode-opt-btn py-1.5 px-2 rounded bg-emerald-600 text-[11px] font-bold text-white border border-emerald-400";
+                } else {
+                    btn.className = "vmode-opt-btn py-1.5 px-2 rounded bg-slate-800 text-[11px] font-semibold text-slate-300 border border-slate-700";
+                }
+            });
+        };
+
+        window.setLobbySpeed = function(speed) {
+            config.speed = speed;
+            document.getElementById('lblGameSpeed').textContent = `${speed}x`;
+            document.querySelectorAll('.speed-opt-btn').forEach(btn => {
+                const s = parseFloat(btn.getAttribute('data-speed'));
+                if (s === speed) {
+                    btn.className = "speed-opt-btn py-1 rounded bg-emerald-600 text-xs font-mono text-white font-bold border border-emerald-400";
+                } else {
+                    btn.className = "speed-opt-btn py-1 rounded bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700";
+                }
+            });
+        };
+
+        window.resetDefaultSettings = function() {
+            document.getElementById('inpMapWidth').value = 30;
+            document.getElementById('inpMapHeight').value = 30;
+            document.getElementById('inpMountainDensity').value = 18;
+            document.getElementById('inpCityDensity').value = 4.0;
+            document.getElementById('inpBotCount').value = 3;
+            document.getElementById('chkAllowRelocate').checked = true;
+            window.setLobbyVisionMode('standard');
+            window.setLobbySpeed(1);
+            window.updateConfigLabels();
+            showToast("已恢復標準對戰參數");
+        };
+
+        // ============================================================================
+        // MAP GENERATOR WITH CONNECTIVITY GUARANTEE (BFS)
+        // ============================================================================
+        function generateBattlefieldMap(width, height, mountainPct, cityPct, playerList) {
+            const totalTiles = width * height;
+            let terrain = new Uint8Array(totalTiles);
+            let owner = new Int8Array(totalTiles).fill(-1);
+            let army = new Int32Array(totalTiles).fill(0);
+
+            const maxAttempts = 20;
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                terrain.fill(TILE_EMPTY);
+                owner.fill(-1);
+                army.fill(0);
+
+                // 1. Place Generals with good minimum distance
+                const generals = [];
+                const minDistance = Math.max(4, Math.floor(Math.min(width, height) / (playerList.length + 1)));
+
+                for (let p = 0; p < playerList.length; p++) {
+                    let placed = false;
+                    for (let tries = 0; tries < 300; tries++) {
+                        const gx = Math.floor(Math.random() * width);
+                        const gy = Math.floor(Math.random() * height);
+                        let farEnough = true;
+                        for (const prev of generals) {
+                            const dist = Math.abs(gx - prev.x) + Math.abs(gy - prev.y);
+                            if (dist < minDistance && tries < 200) {
+                                farEnough = false;
+                                break;
+                            }
+                        }
+                        if (farEnough) {
+                            const idx = gy * width + gx;
+                            if (terrain[idx] === TILE_EMPTY) {
+                                terrain[idx] = TILE_GENERAL;
+                                owner[idx] = p;
+                                army[idx] = 1; // Starts with 1 troop
+                                playerList[p].generalIndex = idx;
+                                generals.push({ x: gx, y: gy, idx });
+                                placed = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!placed) {
+                        // Fallback placement
+                        for (let i = 0; i < totalTiles; i++) {
+                            if (terrain[i] === TILE_EMPTY) {
+                                terrain[i] = TILE_GENERAL;
+                                owner[i] = p;
+                                army[i] = 1;
+                                playerList[p].generalIndex = i;
+                                generals.push({ x: i % width, y: Math.floor(i / width), idx: i });
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // 2. Place Mountains & Neutral Cities (Only these two terrain types!)
+                for (let i = 0; i < totalTiles; i++) {
+                    if (terrain[i] !== TILE_EMPTY) continue;
+
+                    // Keep immediate 4-neighbors of generals clear of mountains so no one is trapped at spawn
+                    let nearGeneral = false;
+                    const ix = i % width;
+                    const iy = Math.floor(i / width);
+                    for (const g of generals) {
+                        if (Math.abs(ix - g.x) + Math.abs(iy - g.y) <= 1) {
+                            nearGeneral = true;
+                            break;
+                        }
+                    }
+
+                    const roll = Math.random() * 100;
+                    if (!nearGeneral && roll < mountainPct) {
+                        terrain[i] = TILE_MOUNTAIN;
+                    } else if (roll >= mountainPct && roll < mountainPct + cityPct) {
+                        terrain[i] = TILE_CITY;
+                        army[i] = 40 + Math.floor(Math.random() * 11); // 40 ~ 50 neutral city garrison
+                    }
+                }
+
+                // 3. Verify all Generals can reach each other via BFS
+                if (areAllGeneralsConnected(width, height, terrain, generals)) {
+                    return { terrain, owner, army };
+                }
+            }
+
+            // If extreme mountain density blocked paths, carve direct corridors between generals
+            const g0 = playerList[0].generalIndex;
+            const g0x = g0 % width, g0y = Math.floor(g0 / width);
+            for (let p = 1; p < playerList.length; p++) {
+                const gp = playerList[p].generalIndex;
+                let cx = gp % width, cy = Math.floor(gp / width);
+                while (cx !== g0x || cy !== g0y) {
+                    if (cx < g0x) cx++;
+                    else if (cx > g0x) cx--;
+                    else if (cy < g0y) cy++;
+                    else if (cy > g0y) cy--;
+                    const cIdx = cy * width + cx;
+                    if (terrain[cIdx] === TILE_MOUNTAIN) {
+                        terrain[cIdx] = TILE_EMPTY;
+                    }
+                }
+            }
+
+            return { terrain, owner, army };
+        }
+
+        function areAllGeneralsConnected(width, height, terrain, generals) {
+            if (generals.length <= 1) return true;
+            const total = width * height;
+            const visited = new Uint8Array(total);
+            const queue = [generals[0].idx];
+            visited[generals[0].idx] = 1;
+
+            let head = 0;
+            while (head < queue.length) {
+                const curr = queue[head++];
+                const cx = curr % width;
+                const cy = Math.floor(curr / width);
+                const neighbors = [];
+                if (cy > 0) neighbors.push(curr - width);
+                if (cy < height - 1) neighbors.push(curr + width);
+                if (cx > 0) neighbors.push(curr - 1);
+                if (cx < width - 1) neighbors.push(curr + 1);
+
+                for (const nb of neighbors) {
+                    if (!visited[nb] && terrain[nb] !== TILE_MOUNTAIN) {
+                        visited[nb] = 1;
+                        queue.push(nb);
+                    }
+                }
+            }
+
+            for (const g of generals) {
+                if (!visited[g.idx]) return false;
+            }
+            return true;
+        }
+
+        // ============================================================================
+        // GAME START & LOOP (SINGLEPLAYER & HOST)
+        // ============================================================================
+        window.startLocalGame = function() {
+            window.updateConfigLabels();
+            const playerName = (document.getElementById('playerNameInput').value || "指揮官Alpha").trim();
+
+            const players = [
+                { id: 0, name: playerName, colorIdx: 0, isBot: false, alive: true, generalIndex: 0, relocateUsed: false }
+            ];
+            for (let b = 0; b < config.botCount; b++) {
+                players.push({
+                    id: b + 1,
+                    name: BOT_NAMES[b % BOT_NAMES.length],
+                    colorIdx: b + 1,
+                    isBot: true,
+                    alive: true,
+                    generalIndex: 0,
+                    relocateUsed: false
+                });
+            }
+
+            setupAndLaunchMatch('single', config.width, config.height, players, 0);
+        };
+
+        function setupAndLaunchMatch(mode, width, height, players, myPlayerIndex, pregeneratedMap = null) {
+            stopGameLoop();
+            stopReplayPlayback();
+
+            game.mode = mode;
+            game.width = width;
+            game.height = height;
+            game.turn = 1;
+            game.players = players.map(p => ({ ...p, relocateUsed: !!p.relocateUsed }));
+            game.myPlayerIndex = myPlayerIndex;
+            game.selectedTile = -1;
+            game.split50Mode = false;
+            game.relocateTargetingMode = false;
+            game.allowRelocate = pregeneratedMap && typeof pregeneratedMap.allowRelocate === 'boolean'
+                ? pregeneratedMap.allowRelocate
+                : config.allowRelocate;
+            game.moveQueue = [];
+            game.botMemory = {};
+            game.replayHistory = [];
+            game.isPaused = false;
+            game.isRunning = true;
+
+            if (pregeneratedMap) {
+                game.terrain = new Uint8Array(pregeneratedMap.terrain);
+                game.owner = new Int8Array(pregeneratedMap.owner);
+                game.army = new Int32Array(pregeneratedMap.army);
+            } else {
+                const generated = generateBattlefieldMap(width, height, config.mountainDensity, config.cityDensity, game.players);
+                game.terrain = generated.terrain;
+                game.owner = generated.owner;
+                game.army = generated.army;
+            }
+
+            // Record initial Turn 1 snapshot for Replay
+            recordTurnSnapshot();
+
+            // UI Transition
+            document.getElementById('lobbyScreen').classList.add('hidden');
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('gameHud').classList.remove('hidden');
+            document.getElementById('combatControlsBar').classList.remove('hidden');
+            document.getElementById('replayControllerBar').classList.add('hidden');
+            document.getElementById('relocatePromptBanner').classList.add('hidden');
+            document.getElementById('btnEnterReplayNow').classList.remove('hidden');
+            document.getElementById('hudSpeedControlRow').classList.toggle('hidden', mode === 'online_client');
+
+            document.getElementById('modeIndicatorBadge').textContent = mode === 'single' ? '單人練習 AI' : '線上即時對戰';
+            document.getElementById('modeIndicatorBadge').className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+
+            updateFogButtonUI();
+            updateSplit50UI();
+            updateRelocateButtonUI();
+            updateLiveSpeedButtonsUI(config.speed);
+            centerOnGeneral();
+            updateHudAndLeaderboard();
+
+            if (mode === 'single' || mode === 'online_host') {
+                startGameLoop();
+            }
+        }
+
+        function startGameLoop() {
+            stopGameLoop();
+            const intervalMs = Math.max(80, Math.round(500 / config.speed));
+            game.turnTimer = setInterval(() => {
+                if (!game.isPaused && game.isRunning) {
+                    advanceGameTurn();
+                }
+            }, intervalMs);
+        }
+
+        function stopGameLoop() {
+            if (game.turnTimer) {
+                clearInterval(game.turnTimer);
+                game.turnTimer = null;
+            }
+        }
+
+        window.changeLiveGameSpeed = function(newSpeed) {
+            if (game.mode === 'online_client') return;
+            config.speed = newSpeed;
+            updateLiveSpeedButtonsUI(newSpeed);
+            if (game.isRunning) {
+                startGameLoop();
+            }
+        };
+
+        function updateLiveSpeedButtonsUI(speed) {
+            document.querySelectorAll('.live-speed-btn').forEach(btn => {
+                const s = parseFloat(btn.getAttribute('data-livespeed'));
+                if (s === speed) {
+                    btn.className = "live-speed-btn px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-600 text-white font-bold";
+                } else {
+                    btn.className = "live-speed-btn px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300";
+                }
+            });
+        }
+
+        window.togglePauseGame = function() {
+            if (game.mode === 'online_client') return;
+            game.isPaused = !game.isPaused;
+            const btn = document.getElementById('btnHudPause');
+            btn.innerHTML = game.isPaused ? `<i class="fa-solid fa-play"></i>` : `<i class="fa-solid fa-pause"></i>`;
+            showToast(game.isPaused ? "戰局已暫停" : "戰局繼續進行");
+        };
+
+        // ============================================================================
+        // CORE TURN EXECUTION & ECONOMY RULES
+        // ============================================================================
+        function advanceGameTurn() {
+            if (!game.isRunning) return;
+
+            // 1. Gather Player Moves
+            const turnMoves = [];
+
+            // Local player's next valid move from queue
+            const myMove = popNextValidMoveFromQueue(game.myPlayerIndex);
+            if (myMove) {
+                turnMoves.push({ playerIndex: game.myPlayerIndex, ...myMove });
+            }
+
+            // Online clients' pending moves (if host) - supports multiple simultaneous players!
+            if (game.mode === 'online_host') {
+                for (let p = 0; p < game.players.length; p++) {
+                    const pl = game.players[p];
+                    if (p !== game.myPlayerIndex && !pl.isBot && pl.alive && pl.uid) {
+                        const queueForClient = pendingClientMoves[pl.uid];
+                        if (queueForClient && queueForClient.length > 0) {
+                            while (queueForClient.length > 0) {
+                                const cm = queueForClient.shift();
+                                if (cm.type === 'relocate') {
+                                    executeCapitalRelocation(p, cm.targetCityIdx);
+                                    break;
+                                } else if (isValidAdjacentMove(p, cm.from, cm.to)) {
+                                    turnMoves.push({ playerIndex: p, from: cm.from, to: cm.to, isHalf: cm.isHalf });
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // AI Bots' moves
+            for (let p = 0; p < game.players.length; p++) {
+                if (game.players[p].isBot && game.players[p].alive) {
+                    const botMove = computeSmartBotMove(p);
+                    if (botMove) {
+                        turnMoves.push({ playerIndex: p, ...botMove });
+                    }
+                }
+            }
+
+            // 2. Execute Moves
+            for (const mv of turnMoves) {
+                executeSingleMove(mv.playerIndex, mv.from, mv.to, mv.isHalf);
+            }
+
+            // 3. Advance Turn Counter
+            game.turn++;
+
+            // 4. STRICT ECONOMY RULES:
+            // Rule A: Generals & Captured Cities gain +1 troop EVERY turn
+            // Rule B: Captured Empty Land gains +1 troop EVERY 25 turns (turn % 25 === 0)
+            const isLandReinforceTurn = (game.turn % 25 === 0);
+            const totalTiles = game.width * game.height;
+
+            for (let i = 0; i < totalTiles; i++) {
+                const tileOwner = game.owner[i];
+                if (tileOwner >= 0) {
+                    const tType = game.terrain[i];
+                    if (tType === TILE_GENERAL || tType === TILE_CITY) {
+                        game.army[i] += 1; // Every turn +1
+                    } else if (tType === TILE_EMPTY && isLandReinforceTurn) {
+                        game.army[i] += 1; // Every 25 turns +1
+                    }
+                }
+            }
+
+            // 5. Record snapshot for replay
+            recordTurnSnapshot();
+
+            // 6. Sync state if Online Host
+            if (game.mode === 'online_host' && currentRoomId) {
+                broadcastHostStateToFirestore();
+            }
+
+            // 7. Update UI & Check Victory
+            updateHudAndLeaderboard();
+            checkVictoryCondition();
+        }
+
+        function popNextValidMoveFromQueue(playerIdx) {
+            while (game.moveQueue.length > 0) {
+                const mv = game.moveQueue.shift();
+                document.getElementById('queueLengthText').textContent = game.moveQueue.length;
+                if (isValidAdjacentMove(playerIdx, mv.from, mv.to)) {
+                    return mv;
+                }
+            }
+            return null;
+        }
+
+        function isValidAdjacentMove(playerIdx, fromIdx, toIdx) {
+            if (fromIdx < 0 || toIdx < 0 || fromIdx >= game.width * game.height || toIdx >= game.width * game.height) return false;
+            if (game.owner[fromIdx] !== playerIdx) return false;
+            if (game.army[fromIdx] < 2) return false;
+            if (game.terrain[toIdx] === TILE_MOUNTAIN) return false;
+
+            const fx = fromIdx % game.width, fy = Math.floor(fromIdx / game.width);
+            const tx = toIdx % game.width, ty = Math.floor(toIdx / game.width);
+            return (Math.abs(fx - tx) + Math.abs(fy - ty)) === 1;
+        }
+
+        function executeSingleMove(playerIdx, fromIdx, toIdx, isHalf) {
+            if (!isValidAdjacentMove(playerIdx, fromIdx, toIdx)) return;
+
+            const available = game.army[fromIdx] - 1;
+            if (available <= 0) return;
+
+            // 50% Split calculation: sends half of total troops on tile
+            const movingTroops = isHalf ? Math.max(1, Math.floor(game.army[fromIdx] / 2)) : available;
+            game.army[fromIdx] -= movingTroops;
+
+            const targetOwner = game.owner[toIdx];
+            if (targetOwner === playerIdx) {
+                // Reinforce friendly tile
+                game.army[toIdx] += movingTroops;
+            } else {
+                // Attack neutral or enemy tile
+                const defenderTroops = game.army[toIdx];
+                if (movingTroops > defenderTroops) {
+                    const remainingAttacker = movingTroops - defenderTroops;
+                    const previousOwner = game.owner[toIdx];
+                    game.owner[toIdx] = playerIdx;
+                    game.army[toIdx] = remainingAttacker;
+
+                    // Check if captured an enemy General!
+                    if (game.terrain[toIdx] === TILE_GENERAL && previousOwner >= 0 && previousOwner !== playerIdx) {
+                        handleGeneralCaptured(playerIdx, previousOwner, toIdx);
+                    }
+                } else {
+                    game.army[toIdx] = defenderTroops - movingTroops;
+                }
+            }
+        }
+
+        function handleGeneralCaptured(capturerIdx, defeatedIdx, generalTileIdx) {
+            // Convert captured General into a regular City
+            game.terrain[generalTileIdx] = TILE_CITY;
+            game.players[defeatedIdx].alive = false;
+
+            // Transfer all remaining tiles of the defeated player to the capturer (with 50% army rounded up)
+            const total = game.width * game.height;
+            for (let i = 0; i < total; i++) {
+                if (i !== generalTileIdx && game.owner[i] === defeatedIdx) {
+                    game.owner[i] = capturerIdx;
+                    game.army[i] = Math.max(1, Math.ceil(game.army[i] / 2));
+                }
+            }
+
+            const capName = game.players[capturerIdx]?.name || "指揮官";
+            const defName = game.players[defeatedIdx]?.name || "對手";
+            showToast(`⚔️ 【${capName}】攻陷了【${defName}】的主堡，接收其全部領地！`, defeatedIdx === game.myPlayerIndex ? 'danger' : 'info');
+        }
+
+        function checkVictoryCondition() {
+            if (!game.isRunning) return;
+            const alivePlayers = game.players.filter(p => p.alive);
+            const me = game.players[game.myPlayerIndex];
+
+            if (me && !me.alive) {
+                const topWinner = alivePlayers[0] || game.players[0];
+                concludeGame(topWinner, true);
+                return;
+            }
+
+            if (alivePlayers.length <= 1) {
+                concludeGame(alivePlayers[0] || me, false);
+            }
+        }
+
+        // ============================================================================
+        // CAPITAL RELOCATION ("遷都") MECHANIC
+        // ============================================================================
+        window.toggleRelocateMode = function() {
+            if (replayState.active || !game.isRunning) return;
+            if (!game.allowRelocate) {
+                showToast("本局設定未開啟「遷都」功能", "warn");
+                return;
+            }
+            const me = game.players[game.myPlayerIndex];
+            if (!me || !me.alive) return;
+            if (me.relocateUsed) {
+                showToast("您在本局已經使用過遷都機會 (每局上限 1 次)", "warn");
+                return;
+            }
+
+            // Check if player owns at least one City (TILE_CITY)
+            let ownedCityCount = 0;
+            const total = game.width * game.height;
+            for (let i = 0; i < total; i++) {
+                if (game.owner[i] === game.myPlayerIndex && game.terrain[i] === TILE_CITY) {
+                    ownedCityCount++;
+                }
+            }
+
+            if (ownedCityCount === 0) {
+                showToast("您目前尚未佔領任何「城市」，需先攻下一座城市才能遷都！", "warn");
+                return;
+            }
+
+            game.relocateTargetingMode = !game.relocateTargetingMode;
+            document.getElementById('relocatePromptBanner').classList.toggle('hidden', !game.relocateTargetingMode);
+            updateRelocateButtonUI();
+        };
+
+        window.cancelRelocateMode = function() {
+            game.relocateTargetingMode = false;
+            document.getElementById('relocatePromptBanner').classList.add('hidden');
+            updateRelocateButtonUI();
+        };
+
+        function executeCapitalRelocation(playerIdx, targetCityIdx) {
+            if (!game.allowRelocate) return false;
+            const pl = game.players[playerIdx];
+            if (!pl || !pl.alive || pl.relocateUsed) return false;
+
+            if (targetCityIdx < 0 || targetCityIdx >= game.width * game.height) return false;
+            if (game.owner[targetCityIdx] !== playerIdx || game.terrain[targetCityIdx] !== TILE_CITY) {
+                return false;
+            }
+
+            const oldGenIdx = pl.generalIndex;
+            if (oldGenIdx >= 0 && oldGenIdx < game.width * game.height && game.terrain[oldGenIdx] === TILE_GENERAL) {
+                // Old General becomes a regular owned City
+                game.terrain[oldGenIdx] = TILE_CITY;
+            }
+
+            // Target City becomes the new General
+            game.terrain[targetCityIdx] = TILE_GENERAL;
+            pl.generalIndex = targetCityIdx;
+            pl.relocateUsed = true;
+
+            if (playerIdx === game.myPlayerIndex) {
+                game.relocateTargetingMode = false;
+                game.selectedTile = targetCityIdx;
+                document.getElementById('relocatePromptBanner').classList.add('hidden');
+                updateRelocateButtonUI();
+                showToast("🏰 遷都成功！主堡已轉移至新城市，原主堡已改為一般城市。");
+            } else {
+                showToast(`⚠️ 情報：指揮官【${pl.name}】已執行戰術遷都！`, "warn");
+            }
+            return true;
+        }
+
+        function updateRelocateButtonUI() {
+            const btn = document.getElementById('btnRelocateCapital');
+            const txt = document.getElementById('relocateBtnText');
+            if (!btn || !txt) return;
+
+            if (!game.allowRelocate) {
+                btn.classList.add('hidden');
+                return;
+            }
+            btn.classList.remove('hidden');
+
+            const me = game.players[game.myPlayerIndex];
+            if (me && me.relocateUsed) {
+                txt.textContent = "已遷都 (0/1)";
+                btn.className = "px-3.5 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-2 bg-slate-900/60 text-slate-500 border-slate-800 cursor-not-allowed";
+            } else if (game.relocateTargetingMode) {
+                txt.textContent = "選擇城市中...";
+                btn.className = "px-3.5 py-2 rounded-xl text-xs font-extrabold border transition flex items-center gap-2 bg-amber-500 text-slate-950 border-amber-300 shadow-lg shadow-amber-500/30 btn-tactical";
+            } else {
+                txt.textContent = "遷都 (剩 1 次)";
+                btn.className = "px-3.5 py-2 rounded-xl text-xs font-extrabold border transition flex items-center gap-2 bg-slate-800/90 text-amber-300 border-amber-500/40 hover:border-amber-400 btn-tactical";
+            }
+        }
+
+        function concludeGame(winner, playerDefeatedEarly = false) {
+            game.isRunning = false;
+            stopGameLoop();
+            saveCurrentReplayToStorage(winner ? winner.name : "未分勝負");
+
+            const modal = document.getElementById('gameOverModal');
+            const title = document.getElementById('modalTitle');
+            const sub = document.getElementById('modalSubtitle');
+            const iconBox = document.getElementById('modalIconBox');
+
+            if (!playerDefeatedEarly && winner && winner.id === game.myPlayerIndex) {
+                title.textContent = "🎉 凱旋勝利！";
+                sub.textContent = `您率領【${winner.name}】統一了整座戰場！`;
+                iconBox.className = "w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+                iconBox.innerHTML = `<i class="fa-solid fa-crown"></i>`;
+            } else {
+                title.textContent = "💥 主堡淪陷";
+                sub.textContent = winner ? `本局由【${winner.name}】取得最終霸權` : `戰役已結束`;
+                iconBox.className = "w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl bg-rose-500/20 text-rose-400 border border-rose-500/40";
+                iconBox.innerHTML = `<i class="fa-solid fa-skull-crossbones"></i>`;
+            }
+
+            document.getElementById('modalTotalTurns').textContent = `${game.turn} 回合`;
+            document.getElementById('modalMapDims').textContent = `${game.width}x${game.height}`;
+            modal.classList.remove('hidden');
+        }
+
+        // ============================================================================
+        // SMART AI BOT DECISION ENGINE
+        // ============================================================================
+        function computeSmartBotMove(botIdx) {
+            const total = game.width * game.height;
+            const myTiles = [];
+            for (let i = 0; i < total; i++) {
+                if (game.owner[i] === botIdx && game.army[i] >= 2) {
+                    myTiles.push(i);
+                }
+            }
+            if (myTiles.length === 0) return null;
+
+            // Sort tiles by army descending to move largest stack
+            myTiles.sort((a, b) => game.army[b] - game.army[a]);
+            const largestTile = myTiles[0];
+            const largestArmy = game.army[largestTile];
+
+            // 1. Check if any owned tile can immediately capture an adjacent Enemy General or Enemy Tile or City
+            for (const t of myTiles.slice(0, 6)) {
+                const nbs = getPassableNeighbors(t);
+                for (const nb of nbs) {
+                    // Priority 1: Kill adjacent Enemy General
+                    if (game.terrain[nb] === TILE_GENERAL && game.owner[nb] !== botIdx && game.army[t] > game.army[nb] + 1) {
+                        return { from: t, to: nb, isHalf: false };
+                    }
+                    // Priority 2: Capture affordable City
+                    if (game.terrain[nb] === TILE_CITY && game.owner[nb] !== botIdx && game.army[t] > game.army[nb] + 2) {
+                        return { from: t, to: nb, isHalf: false };
+                    }
+                    // Priority 3: Capture enemy tile
+                    if (game.owner[nb] >= 0 && game.owner[nb] !== botIdx && game.army[t] > game.army[nb] + 1) {
+                        return { from: t, to: nb, isHalf: false };
+                    }
+                }
+            }
+
+            // 2. Expand into neutral empty land using largest border stack
+            for (const t of myTiles.slice(0, 8)) {
+                const nbs = getPassableNeighbors(t);
+                const emptyNbs = nbs.filter(nb => game.owner[nb] === -1 && game.terrain[nb] === TILE_EMPTY);
+                if (emptyNbs.length > 0) {
+                    const target = emptyNbs[Math.floor(Math.random() * emptyNbs.length)];
+                    // Occasionally split 50% if stack is huge on general
+                    const useHalf = (t === game.players[botIdx].generalIndex && game.army[t] >= 20 && Math.random() < 0.35);
+                    return { from: t, to: target, isHalf: useHalf };
+                }
+            }
+
+            // 3. Move largest interior army toward nearest non-friendly tile
+            const nbs = getPassableNeighbors(largestTile);
+            if (nbs.length === 0) return null;
+
+            // Maintain direction momentum in botMemory
+            const mem = game.botMemory[botIdx] || { lastFrom: -1 };
+            const validNbs = nbs.filter(n => n !== mem.lastFrom && (game.terrain[n] !== TILE_CITY || game.owner[n] === botIdx || largestArmy > game.army[n] + 2));
+            const pool = validNbs.length > 0 ? validNbs : nbs;
+            const chosen = pool[Math.floor(Math.random() * pool.length)];
+            game.botMemory[botIdx] = { lastFrom: largestTile };
+
+            return { from: largestTile, to: chosen, isHalf: false };
+        }
+
+        function getPassableNeighbors(idx) {
+            const x = idx % game.width;
+            const y = Math.floor(idx / game.width);
+            const res = [];
+            if (y > 0 && game.terrain[idx - game.width] !== TILE_MOUNTAIN) res.push(idx - game.width);
+            if (y < game.height - 1 && game.terrain[idx + game.width] !== TILE_MOUNTAIN) res.push(idx + game.width);
+            if (x > 0 && game.terrain[idx - 1] !== TILE_MOUNTAIN) res.push(idx - 1);
+            if (x < game.width - 1 && game.terrain[idx + 1] !== TILE_MOUNTAIN) res.push(idx + 1);
+            return res;
+        }
+
+        // ============================================================================
+        // PLAYER CONTROLS, 50% SPLIT & MOVE QUEUE
+        // ============================================================================
+        function handleTileClick(tileIdx) {
+            if (replayState.active || !game.isRunning) return;
+            if (tileIdx < 0 || tileIdx >= game.width * game.height) return;
+
+            // Check if player is currently picking an owned city to Relocate Capital ("遷都")
+            if (game.relocateTargetingMode) {
+                if (game.owner[tileIdx] === game.myPlayerIndex && game.terrain[tileIdx] === TILE_CITY) {
+                    if (game.mode === 'online_client' && currentRoomId && currentUser) {
+                        sendClientRelocateToHost(tileIdx);
+                        window.cancelRelocateMode();
+                        showToast("已發送遷都指令，將於下一回合生效！");
+                    } else {
+                        executeCapitalRelocation(game.myPlayerIndex, tileIdx);
+                    }
+                } else {
+                    showToast("請點擊一座「您已佔領的城市」來進行遷都！", "warn");
+                }
+                return;
+            }
+
+            // If no tile selected yet
+            if (game.selectedTile === -1) {
+                if (game.owner[tileIdx] === game.myPlayerIndex) {
+                    game.selectedTile = tileIdx;
+                    game.split50Mode = false;
+                    updateSplit50UI();
+                }
+                return;
+            }
+
+            // REQUIREMENT 7: Clicking the ALREADY SELECTED tile a second time toggles 50% split mode!
+            if (game.selectedTile === tileIdx) {
+                game.split50Mode = !game.split50Mode;
+                updateSplit50UI();
+                return;
+            }
+
+            // Check if clicked tile is adjacent to currently selected tile
+            const sx = game.selectedTile % game.width, sy = Math.floor(game.selectedTile / game.width);
+            const tx = tileIdx % game.width, ty = Math.floor(tileIdx / game.width);
+            const dist = Math.abs(sx - tx) + Math.abs(sy - ty);
+
+            if (dist === 1 && game.terrain[tileIdx] !== TILE_MOUNTAIN) {
+                queueMove(game.selectedTile, tileIdx, game.split50Mode);
+                game.selectedTile = tileIdx;
+                game.split50Mode = false;
+                updateSplit50UI();
+            } else if (game.owner[tileIdx] === game.myPlayerIndex) {
+                // Switch selection to another friendly tile
+                game.selectedTile = tileIdx;
+                game.split50Mode = false;
+                updateSplit50UI();
+            } else {
+                // Deselect
+                game.selectedTile = -1;
+                game.split50Mode = false;
+                updateSplit50UI();
+            }
+        }
+
+        function queueMove(fromIdx, toIdx, isHalf) {
+            if (game.mode === 'online_client' && currentRoomId && currentUser) {
+                // Send move directly to Firestore room
+                sendClientMoveToHost(fromIdx, toIdx, isHalf);
+            }
+            game.moveQueue.push({ from: fromIdx, to: toIdx, isHalf });
+            document.getElementById('queueLengthText').textContent = game.moveQueue.length;
+        }
+
+        window.toggleSplit50Mode = function() {
+            if (replayState.active) return;
+            game.split50Mode = !game.split50Mode;
+            updateSplit50UI();
+        };
+
+        function updateSplit50UI() {
+            const btn = document.getElementById('btnSplit50');
+            const dot = document.getElementById('splitStatusDot');
+            if (game.split50Mode) {
+                btn.className = "px-3.5 py-2 rounded-xl text-xs font-extrabold border transition flex items-center gap-2 bg-amber-500 text-slate-950 border-amber-300 shadow-lg shadow-amber-500/20 btn-tactical";
+                dot.className = "w-2.5 h-2.5 rounded-full bg-slate-950 animate-ping";
+            } else {
+                btn.className = "px-3.5 py-2 rounded-xl text-xs font-extrabold border transition flex items-center gap-2 bg-slate-800/90 text-slate-200 border-slate-700 hover:border-amber-400 btn-tactical";
+                dot.className = "w-2.5 h-2.5 rounded-full bg-slate-500";
+            }
+        }
+
+        window.clearMoveQueue = function() {
+            game.moveQueue = [];
+            document.getElementById('queueLengthText').textContent = "0";
+        };
+
+        window.undoLastMove = function() {
+            if (game.moveQueue.length > 0) {
+                const popped = game.moveQueue.pop();
+                game.selectedTile = popped.from;
+                document.getElementById('queueLengthText').textContent = game.moveQueue.length;
+            }
+        };
+
+        // Keyboard shortcuts (WASD, Arrows, Z for 50%, Q clear, E undo, H home)
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('lobbyScreen').offsetParent !== null) return;
+
+            const key = e.key.toLowerCase();
+            if (key === 'z') {
+                e.preventDefault();
+                window.toggleSplit50Mode();
+                return;
+            }
+            if (key === 'm') {
+                e.preventDefault();
+                window.toggleRelocateMode();
+                return;
+            }
+            if (key === 'q') {
+                e.preventDefault();
+                window.clearMoveQueue();
+                return;
+            }
+            if (key === 'e') {
+                e.preventDefault();
+                window.undoLastMove();
+                return;
+            }
+            if (key === 'h') {
+                e.preventDefault();
+                window.centerOnGeneral();
+                return;
+            }
+            if (key === 'p') {
+                e.preventDefault();
+                window.togglePauseGame();
+                return;
+            }
+            if (key === ' ') {
+                e.preventDefault();
+                if (replayState.active) {
+                    window.toggleReplayPlayback();
+                } else {
+                    game.selectedTile = -1;
+                    game.split50Mode = false;
+                    updateSplit50UI();
+                }
+                return;
+            }
+
+            if (replayState.active || game.selectedTile === -1) return;
+
+            let dx = 0, dy = 0;
+            if (key === 'w' || e.key === 'ArrowUp') dy = -1;
+            else if (key === 's' || e.key === 'ArrowDown') dy = 1;
+            else if (key === 'a' || e.key === 'ArrowLeft') dx = -1;
+            else if (key === 'd' || e.key === 'ArrowRight') dx = 1;
+
+            if (dx !== 0 || dy !== 0) {
+                e.preventDefault();
+                const sx = game.selectedTile % game.width;
+                const sy = Math.floor(game.selectedTile / game.width);
+                const nx = sx + dx;
+                const ny = sy + dy;
+                if (nx >= 0 && nx < game.width && ny >= 0 && ny < game.height) {
+                    const targetIdx = ny * game.width + nx;
+                    if (game.terrain[targetIdx] !== TILE_MOUNTAIN) {
+                        queueMove(game.selectedTile, targetIdx, game.split50Mode);
+                        game.selectedTile = targetIdx;
+                        game.split50Mode = false;
+                        updateSplit50UI();
+                    }
+                }
+            }
+        });
+
+        // ============================================================================
+        // CANVAS CAMERA PAN, ZOOM & MOUSE INTERACTION
+        // ============================================================================
+        canvas.addEventListener('mousedown', (e) => {
+            camera.isDragging = true;
+            camera.hasMovedDuringDrag = false;
+            camera.dragStartX = e.clientX;
+            camera.dragStartY = e.clientY;
+            camera.camStartX = camera.x;
+            camera.camStartY = camera.y;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!camera.isDragging) return;
+            const dx = e.clientX - camera.dragStartX;
+            const dy = e.clientY - camera.dragStartY;
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                camera.hasMovedDuringDrag = true;
+            }
+            camera.x = camera.camStartX + dx;
+            camera.y = camera.camStartY + dy;
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (!camera.isDragging) return;
+            camera.isDragging = false;
+
+            if (!camera.hasMovedDuringDrag && e.button === 0) {
+                const tileIdx = screenToTileIndex(e.clientX, e.clientY);
+                if (tileIdx !== -1) {
+                    handleTileClick(tileIdx);
+                }
+            }
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
+            zoomAtScreenPoint(zoomFactor, e.clientX, e.clientY);
+        }, { passive: false });
+
+        function zoomAtScreenPoint(factor, screenX, screenY) {
+            const oldSize = camera.tileSize;
+            const newSize = Math.min(85, Math.max(12, camera.tileSize * factor));
+            const scale = newSize / oldSize;
+
+            camera.x = screenX - (screenX - camera.x) * scale;
+            camera.y = screenY - (screenY - camera.y) * scale;
+            camera.tileSize = newSize;
+        }
+
+        window.zoomCanvas = function(factor) {
+            zoomAtScreenPoint(factor, canvas.width / 2, canvas.height / 2);
+        };
+
+        window.centerOnGeneral = function() {
+            const myGen = game.players[game.myPlayerIndex]?.generalIndex ?? 0;
+            const gx = myGen % game.width;
+            const gy = Math.floor(myGen / game.width);
+
+            // In Pitch-Black Blind Fog mode, use a fixed tactical zoom centered strictly on General
+            // so the zoom level or position never hints at map dimensions or corner proximity
+            const fitSize = config.visionMode === 'blind'
+                ? 42
+                : Math.min(46, Math.max(18, Math.floor(Math.min(canvas.width, canvas.height) / Math.min(28, Math.max(game.width, game.height)))));
+            camera.tileSize = fitSize;
+            camera.x = Math.floor(canvas.width / 2 - (gx + 0.5) * camera.tileSize);
+            camera.y = Math.floor(canvas.height / 2 - (gy + 0.5) * camera.tileSize);
+        };
+
+        function screenToTileIndex(sx, sy) {
+            const gx = Math.floor((sx - camera.x) / camera.tileSize);
+            const gy = Math.floor((sy - camera.y) / camera.tileSize);
+            if (gx < 0 || gx >= game.width || gy < 0 || gy >= game.height) return -1;
+            return gy * game.width + gx;
+        }
+
+        window.cycleVisionModeInGame = function() {
+            const order = ['standard', 'blind', 'full'];
+            const nextIdx = (order.indexOf(config.visionMode) + 1) % order.length;
+            config.visionMode = order[nextIdx];
+            updateFogButtonUI();
+            const modeNames = {
+                standard: '標準視野 (顯示地形陰影)',
+                blind: '真・全黑迷霧 (隱藏全圖與邊界)',
+                full: '全圖透視視野'
+            };
+            showToast(`已切換為：${modeNames[config.visionMode]}`);
+        };
+
+        function updateFogButtonUI() {
+            const btn = document.getElementById('btnToggleFog');
+            if (!btn) return;
+            if (config.visionMode === 'standard') {
+                btn.innerHTML = `<i class="fa-solid fa-eye-low-vision mr-1"></i>標準視野`;
+                btn.className = "glass-panel px-3 py-1.5 rounded-xl text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 font-semibold btn-tactical";
+            } else if (config.visionMode === 'blind') {
+                btn.innerHTML = `<i class="fa-solid fa-moon mr-1"></i>全黑迷霧`;
+                btn.className = "glass-panel px-3 py-1.5 rounded-xl text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 font-semibold btn-tactical";
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-eye mr-1"></i>全圖透視`;
+                btn.className = "glass-panel px-3 py-1.5 rounded-xl text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 font-semibold btn-tactical";
+            }
+        }
+
+        // ============================================================================
+        // HIGH-PERFORMANCE 60FPS CANVAS RENDERER (SUPPORTS 100x100 MAPS)
+        // ============================================================================
+        function computeVisibilityMask() {
+            const total = game.width * game.height;
+            if (config.visionMode === 'full') {
+                return new Uint8Array(total).fill(1);
+            }
+            const vis = new Uint8Array(total);
+            const w = game.width, h = game.height;
+            const myIdx = game.myPlayerIndex;
+
+            for (let i = 0; i < total; i++) {
+                if (game.owner[i] === myIdx) {
+                    const ix = i % w;
+                    const iy = Math.floor(i / w);
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const nx = ix + dx, ny = iy + dy;
+                            if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                                vis[ny * w + nx] = 1;
+                            }
+                        }
+                    }
+                }
+            }
+            return vis;
+        }
+
+        function renderGameLoop() {
+            // Pitch-black background (#000000) in 'blind' mode so unseen tiles blend seamlessly into the void!
+            const isBlindMode = (config.visionMode === 'blind');
+            ctx.fillStyle = isBlindMode ? "#000000" : "#060911";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (game.terrain.length > 0) {
+                const ts = camera.tileSize;
+                const w = game.width;
+                const h = game.height;
+                const vis = computeVisibilityMask();
+
+                // In Standard or Full mode, draw a crisp outer map frame so players see map bounds.
+                // In Blind mode, DO NOT draw map boundaries so players cannot tell which corner they are in!
+                if (!isBlindMode) {
+                    ctx.strokeStyle = "#334155";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(camera.x - 1, camera.y - 1, w * ts + 2, h * ts + 2);
+                }
+
+                // Calculate visible tile bounds for frustum culling (crucial for 100x100 performance!)
+                const startCol = Math.max(0, Math.floor(-camera.x / ts));
+                const endCol = Math.min(w - 1, Math.ceil((canvas.width - camera.x) / ts));
+                const startRow = Math.max(0, Math.floor(-camera.y / ts));
+                const endRow = Math.min(h - 1, Math.ceil((canvas.height - camera.y) / ts));
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const pulseAlpha = 0.5 + 0.5 * Math.sin(performance.now() * 0.008);
+
+                for (let r = startRow; r <= endRow; r++) {
+                    for (let c = startCol; c <= endCol; c++) {
+                        const idx = r * w + c;
+                        const px = Math.floor(camera.x + c * ts);
+                        const py = Math.floor(camera.y + r * ts);
+                        const isVisible = vis[idx] === 1;
+
+                        // REQUIREMENT 2: In 'blind' (Pitch-Black Fog) mode, anything not visible is 100% invisible black!
+                        if (!isVisible && isBlindMode) {
+                            continue;
+                        }
+
+                        const tType = game.terrain[idx];
+                        const tOwner = game.owner[idx];
+                        const tArmy = game.army[idx];
+
+                        // REQUIREMENT 1: High-contrast distinction between Visible (Lit) vs Non-Visible (Fogged) tiles
+                        if (!isVisible) {
+                            // Standard Mode Fog: very dark recessed tile with subtle diagonal shadow
+                            ctx.fillStyle = "#090d16";
+                            ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+
+                            ctx.strokeStyle = "#141c2b";
+                            ctx.lineWidth = 1;
+                            ctx.strokeRect(px + 1, py + 1, ts - 2, ts - 2);
+
+                            // Obstacles (Mountains & Neutral/Enemy Cities) show as unmistakable dark mountains in Standard Fog
+                            if (tType === TILE_MOUNTAIN || tType === TILE_CITY) {
+                                ctx.fillStyle = "#111827";
+                                ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+                                drawMountainGlyph(ctx, px, py, ts, true);
+                            }
+                        } else {
+                            // VISIBLE TILE: Brightly illuminated!
+                            if (tOwner >= 0) {
+                                const pColor = PLAYER_COLORS[game.players[tOwner]?.colorIdx ?? 0];
+                                ctx.fillStyle = pColor.hex;
+                            } else if (tType === TILE_MOUNTAIN) {
+                                ctx.fillStyle = "#1e293b";
+                            } else if (tType === TILE_CITY) {
+                                ctx.fillStyle = "#64748b";
+                            } else {
+                                // Illuminated neutral empty land (clearly distinct from dark fog #090d16)
+                                ctx.fillStyle = "#334155";
+                            }
+
+                            ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+
+                            // Crisp illuminated border for all visible tiles so the FOV edge pops out sharply
+                            ctx.strokeStyle = tOwner >= 0 ? "rgba(255,255,255,0.38)" : "rgba(148, 163, 184, 0.42)";
+                            ctx.lineWidth = 1.2;
+                            ctx.strokeRect(px + 1.5, py + 1.5, ts - 3, ts - 3);
+
+                            // Draw prominent terrain symbols
+                            if (tType === TILE_MOUNTAIN) {
+                                drawMountainGlyph(ctx, px, py, ts, false);
+                            } else if (tType === TILE_CITY) {
+                                drawCityGlyph(ctx, px, py, ts);
+                            } else if (tType === TILE_GENERAL) {
+                                drawGeneralCrownGlyph(ctx, px, py, ts);
+                            }
+
+                            // Highlight eligible owned cities when in Capital Relocation ("遷都") mode
+                            if (game.relocateTargetingMode && tOwner === game.myPlayerIndex && tType === TILE_CITY) {
+                                ctx.strokeStyle = `rgba(251, 191, 36, ${0.45 + 0.55 * pulseAlpha})`;
+                                ctx.lineWidth = Math.max(2.5, ts * 0.1);
+                                ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
+                            }
+
+                            // Army Count Text
+                            if (tArmy > 0 && ts >= 16) {
+                                const fontSize = Math.max(9, Math.min(16, Math.floor(ts * 0.34)));
+                                ctx.font = `800 ${fontSize}px 'JetBrains Mono', monospace`;
+                                ctx.fillStyle = "#020617";
+                                ctx.fillText(formatArmyNumber(tArmy), px + ts / 2 + 1, py + ts / 2 + (tType !== TILE_EMPTY ? ts * 0.16 : 0) + 1);
+                                ctx.fillStyle = "#ffffff";
+                                ctx.fillText(formatArmyNumber(tArmy), px + ts / 2, py + ts / 2 + (tType !== TILE_EMPTY ? ts * 0.16 : 0));
+                            }
+                        }
+                    }
+                }
+
+                // 4. Draw Bright FOV Boundary Contour around the player's visible area in Standard Mode
+                if (config.visionMode === 'standard' && ts >= 14) {
+                    ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for (let r = startRow; r <= endRow; r++) {
+                        for (let c = startCol; c <= endCol; c++) {
+                            const idx = r * w + c;
+                            if (vis[idx] !== 1) continue;
+                            const px = Math.floor(camera.x + c * ts);
+                            const py = Math.floor(camera.y + r * ts);
+                            // Top edge
+                            if (r === 0 || vis[(r - 1) * w + c] === 0) {
+                                ctx.moveTo(px, py);
+                                ctx.lineTo(px + ts, py);
+                            }
+                            // Bottom edge
+                            if (r === h - 1 || vis[(r + 1) * w + c] === 0) {
+                                ctx.moveTo(px, py + ts);
+                                ctx.lineTo(px + ts, py + ts);
+                            }
+                            // Left edge
+                            if (c === 0 || vis[r * w + (c - 1)] === 0) {
+                                ctx.moveTo(px, py);
+                                ctx.lineTo(px, py + ts);
+                            }
+                            // Right edge
+                            if (c === w - 1 || vis[r * w + (c + 1)] === 0) {
+                                ctx.moveTo(px + ts, py);
+                                ctx.lineTo(px + ts, py + ts);
+                            }
+                        }
+                    }
+                    ctx.stroke();
+                }
+
+                // 5. Draw Selected Tile Highlight & 50% Badge
+                if (!replayState.active && game.selectedTile >= 0) {
+                    const sc = game.selectedTile % w;
+                    const sr = Math.floor(game.selectedTile / w);
+                    const spx = camera.x + sc * ts;
+                    const spy = camera.y + sr * ts;
+
+                    ctx.strokeStyle = game.split50Mode ? "#fbbf24" : "#ffffff";
+                    ctx.lineWidth = Math.max(2, ts * 0.08);
+                    ctx.strokeRect(spx + 1, spy + 1, ts - 2, ts - 2);
+
+                    if (game.split50Mode && ts >= 20) {
+                        const badgeW = Math.max(26, ts * 0.72);
+                        const badgeH = Math.max(13, ts * 0.34);
+                        ctx.fillStyle = "#f59e0b";
+                        ctx.fillRect(spx + (ts - badgeW) / 2, spy - badgeH * 0.4, badgeW, badgeH);
+                        ctx.fillStyle = "#020617";
+                        ctx.font = `800 ${Math.max(8, Math.floor(ts * 0.24))}px 'JetBrains Mono', monospace`;
+                        ctx.fillText("50%", spx + ts / 2, spy + badgeH * 0.12);
+                    }
+                }
+
+                // 6. Draw Queued Move Arrows
+                if (!replayState.active && game.moveQueue.length > 0) {
+                    for (const mv of game.moveQueue) {
+                        const fc = mv.from % w, fr = Math.floor(mv.from / w);
+                        const tc = mv.to % w, tr = Math.floor(mv.to / w);
+                        const x1 = camera.x + (fc + 0.5) * ts;
+                        const y1 = camera.y + (fr + 0.5) * ts;
+                        const x2 = camera.x + (tc + 0.5) * ts;
+                        const y2 = camera.y + (tr + 0.5) * ts;
+
+                        drawMoveArrow(ctx, x1, y1, x2, y2, ts, mv.isHalf);
+                    }
+                }
+            }
+
+            requestAnimationFrame(renderGameLoop);
+        }
+
+        function formatArmyNumber(n) {
+            if (n >= 10000) return (n / 1000).toFixed(0) + 'k';
+            if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+            return String(n);
+        }
+
+        // REQUIREMENT 3: Authentic, bold Generals.io style Mountain icon with high-contrast peaks, snow caps & ridge lines
+        function drawMountainGlyph(ctx, x, y, size, inFog = false) {
+            const baseLine = y + size * 0.84;
+
+            // Main Left Peak
+            ctx.fillStyle = inFog ? "#334155" : "#94a3b8";
+            ctx.beginPath();
+            ctx.moveTo(x + size * 0.10, baseLine);
+            ctx.lineTo(x + size * 0.42, y + size * 0.16);
+            ctx.lineTo(x + size * 0.74, baseLine);
+            ctx.closePath();
+            ctx.fill();
+
+            // Shaded right slope of Main Peak for 3D depth
+            ctx.fillStyle = inFog ? "#1e293b" : "#64748b";
+            ctx.beginPath();
+            ctx.moveTo(x + size * 0.42, y + size * 0.16);
+            ctx.lineTo(x + size * 0.48, baseLine);
+            ctx.lineTo(x + size * 0.74, baseLine);
+            ctx.closePath();
+            ctx.fill();
+
+            // Secondary Right Peak
+            ctx.fillStyle = inFog ? "#475569" : "#cbd5e1";
+            ctx.beginPath();
+            ctx.moveTo(x + size * 0.44, baseLine);
+            ctx.lineTo(x + size * 0.70, y + size * 0.30);
+            ctx.lineTo(x + size * 0.92, baseLine);
+            ctx.closePath();
+            ctx.fill();
+
+            // Snow cap / bright ridge highlight on Main Peak
+            if (!inFog && size >= 18) {
+                ctx.fillStyle = "#f8fafc";
+                ctx.beginPath();
+                ctx.moveTo(x + size * 0.42, y + size * 0.16);
+                ctx.lineTo(x + size * 0.31, y + size * 0.39);
+                ctx.lineTo(x + size * 0.40, y + size * 0.35);
+                ctx.lineTo(x + size * 0.46, y + size * 0.41);
+                ctx.lineTo(x + size * 0.53, y + size * 0.39);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Crisp outer mountain ridge outline (classic Generals.io vector look)
+            ctx.strokeStyle = inFog ? "#64748b" : "#f1f5f9";
+            ctx.lineWidth = Math.max(1.2, size * 0.045);
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+            ctx.moveTo(x + size * 0.10, baseLine);
+            ctx.lineTo(x + size * 0.42, y + size * 0.16);
+            ctx.lineTo(x + size * 0.58, y + size * 0.50);
+            ctx.lineTo(x + size * 0.70, y + size * 0.30);
+            ctx.lineTo(x + size * 0.92, baseLine);
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        function drawCityGlyph(ctx, x, y, size) {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            const topY = y + size * 0.16;
+            const h = size * 0.26;
+            ctx.fillRect(x + size * 0.26, topY + h * 0.25, size * 0.14, h * 0.75);
+            ctx.fillRect(x + size * 0.43, topY, size * 0.16, h);
+            ctx.fillRect(x + size * 0.62, topY + h * 0.35, size * 0.12, h * 0.65);
+        }
+
+        // UPGRADED HIGH-VISIBILITY GENERAL SYMBOL:
+        // Features an outer golden fortress frame, radial emblem badge, 5-point royal crown with jewels, and starlight glow
+        function drawGeneralCrownGlyph(ctx, x, y, size) {
+            const cx = x + size * 0.5;
+            const cy = y + size * 0.29;
+            const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.007);
+
+            // 1. Prominent Double Golden Fortress Border on the entire General tile
+            ctx.save();
+            ctx.strokeStyle = `rgba(253, 224, 71, ${0.75 + 0.25 * pulse})`;
+            ctx.lineWidth = Math.max(2.2, size * 0.085);
+            ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+
+            // Corner tactical brackets so the General stands out even when zoomed out on 100x100 maps
+            const cornerLen = Math.max(4, size * 0.22);
+            ctx.fillStyle = "#fde047";
+            // Top-left & Top-right corner pips
+            ctx.fillRect(x + 1, y + 1, cornerLen, Math.max(2, size * 0.07));
+            ctx.fillRect(x + 1, y + 1, Math.max(2, size * 0.07), cornerLen);
+            ctx.fillRect(x + size - 1 - cornerLen, y + 1, cornerLen, Math.max(2, size * 0.07));
+            ctx.fillRect(x + size - 1 - Math.max(2, size * 0.07), y + 1, Math.max(2, size * 0.07), cornerLen);
+
+            // 2. Dark high-contrast circular shield behind the crown so the gold pops against any army color
+            const shieldR = Math.max(5, size * 0.24);
+            ctx.fillStyle = "rgba(2, 6, 23, 0.72)";
+            ctx.beginPath();
+            ctx.arc(cx, cy, shieldR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#f59e0b";
+            ctx.lineWidth = Math.max(1.2, size * 0.04);
+            ctx.stroke();
+
+            // 3. Bold Royal Crown with dark outline & bright golden fill
+            const baseY = y + size * 0.42;
+            const topY = y + size * 0.12;
+            ctx.beginPath();
+            ctx.moveTo(x + size * 0.20, baseY);
+            ctx.lineTo(x + size * 0.15, topY + size * 0.04);
+            ctx.lineTo(x + size * 0.34, y + size * 0.27);
+            ctx.lineTo(x + size * 0.50, topY - size * 0.02);
+            ctx.lineTo(x + size * 0.66, y + size * 0.27);
+            ctx.lineTo(x + size * 0.85, topY + size * 0.04);
+            ctx.lineTo(x + size * 0.80, baseY);
+            ctx.closePath();
+
+            ctx.fillStyle = "#fde047";
+            ctx.fill();
+            ctx.strokeStyle = "#020617";
+            ctx.lineWidth = Math.max(1.4, size * 0.045);
+            ctx.lineJoin = "round";
+            ctx.stroke();
+
+            // 4. Center Ruby Jewel & Crown Tip Pearls (when tile size is large enough)
+            if (size >= 22) {
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(x + size * 0.50, topY - size * 0.02, Math.max(1.5, size * 0.045), 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#ef4444";
+                ctx.beginPath();
+                ctx.arc(x + size * 0.50, baseY - size * 0.07, Math.max(1.5, size * 0.045), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function drawMoveArrow(ctx, x1, y1, x2, y2, ts, isHalf) {
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const headLen = Math.max(6, ts * 0.24);
+            const endX = x1 + (x2 - x1) * 0.72;
+            const endY = y1 + (y2 - y1) * 0.72;
+
+            ctx.strokeStyle = isHalf ? "#fbbf24" : "rgba(255, 255, 255, 0.9)";
+            ctx.lineWidth = Math.max(2, ts * 0.08);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            ctx.fillStyle = isHalf ? "#fbbf24" : "rgba(255, 255, 255, 0.9)";
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // ============================================================================
+        // HUD & REAL-TIME LEADERBOARD UPDATER
+        // ============================================================================
+        function updateHudAndLeaderboard() {
+            document.getElementById('hudTurnText').textContent = `Turn ${game.turn}`;
+
+            // 25-Turn Land Reinforcement Cycle
+            const rem = 25 - (game.turn % 25);
+            const progressPct = ((game.turn % 25) / 25) * 100;
+            document.getElementById('hudLandCycleText').textContent = rem === 25 ? "本回合已增援！" : `${rem} 回合後`;
+            document.getElementById('hudLandProgressBar').style.width = `${progressPct === 0 ? 100 : progressPct}%`;
+
+            // Calculate Total Army & Total Land for each player
+            const stats = game.players.map((p, idx) => ({
+                ...p,
+                idx,
+                totalArmy: 0,
+                totalLand: 0
+            }));
+
+            const total = game.width * game.height;
+            for (let i = 0; i < total; i++) {
+                const ow = game.owner[i];
+                if (ow >= 0 && stats[ow]) {
+                    stats[ow].totalLand += 1;
+                    stats[ow].totalArmy += game.army[i];
+                }
+            }
+
+            stats.sort((a, b) => b.totalArmy - a.totalArmy);
+
+            const lbContainer = document.getElementById('leaderboardRows');
+            lbContainer.innerHTML = stats.map(s => {
+                const c = PLAYER_COLORS[s.colorIdx];
+                const isMe = s.idx === game.myPlayerIndex;
+                const opacityClass = s.alive ? '' : 'opacity-45 line-through';
+                return `
+                    <div class="flex items-center justify-between py-1 px-2 rounded-lg ${isMe ? 'bg-slate-800/90 border border-slate-700' : ''} ${opacityClass}">
+                        <div class="flex items-center gap-2 truncate pr-2">
+                            <span class="w-3 h-3 rounded-sm shrink-0" style="background-color: ${c.hex}"></span>
+                            <span class="font-bold text-white truncate">${s.name} ${isMe ? '<span class="text-[10px] text-emerald-400">(你)</span>' : ''}</span>
+                        </div>
+                        <div class="flex items-center gap-3 mono font-bold">
+                            <span class="w-12 text-right text-amber-300">${s.totalArmy}</span>
+                            <span class="w-10 text-right text-slate-300">${s.totalLand}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================================================
+        // FULL REPLAY RECORDING & TIMELINE PLAYBACK SYSTEM
+        // ============================================================================
+        function recordTurnSnapshot() {
+            game.replayHistory.push({
+                turn: game.turn,
+                terrain: Array.from(game.terrain),
+                owner: Array.from(game.owner),
+                army: Array.from(game.army)
+            });
+        }
+
+        function saveCurrentReplayToStorage(winnerName) {
+            if (game.replayHistory.length < 2) return;
+            const record = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                width: game.width,
+                height: game.height,
+                totalTurns: game.turn,
+                winnerName,
+                players: JSON.parse(JSON.stringify(game.players)),
+                myPlayerIndex: game.myPlayerIndex,
+                frames: game.replayHistory
+            };
+            game.savedReplays.unshift(record);
+            if (game.savedReplays.length > 8) {
+                game.savedReplays.pop();
+            }
+        }
+
+        window.finishAndWatchReplay = function() {
+            if (game.replayHistory.length === 0) return;
+            if (game.isRunning) {
+                game.isRunning = false;
+                stopGameLoop();
+                saveCurrentReplayToStorage("中途檢視");
+            }
+            launchReplayViewer(game.savedReplays[0] || {
+                width: game.width,
+                height: game.height,
+                totalTurns: game.turn,
+                players: game.players,
+                myPlayerIndex: game.myPlayerIndex,
+                frames: game.replayHistory
+            });
+        };
+
+        window.enterReplayFromModal = function() {
+            document.getElementById('gameOverModal').classList.add('hidden');
+            window.finishAndWatchReplay();
+        };
+
+        function launchReplayViewer(replayRecord) {
+            stopGameLoop();
+            stopReplayPlayback();
+
+            replayState.active = true;
+            replayState.playing = false;
+            replayState.currentFrame = 0;
+            replayState.data = replayRecord;
+
+            game.width = replayRecord.width;
+            game.height = replayRecord.height;
+            game.players = replayRecord.players;
+            game.myPlayerIndex = replayRecord.myPlayerIndex || 0;
+            game.selectedTile = -1;
+            game.moveQueue = [];
+
+            // Automatically reveal full map in Replay Mode (can still toggle Fog if desired)
+            config.visionMode = 'full';
+            updateFogButtonUI();
+
+            // UI Setup
+            document.getElementById('lobbyScreen').classList.add('hidden');
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('gameHud').classList.remove('hidden');
+            document.getElementById('combatControlsBar').classList.add('hidden');
+            document.getElementById('relocatePromptBanner').classList.add('hidden');
+            document.getElementById('hudSpeedControlRow').classList.add('hidden');
+            document.getElementById('btnEnterReplayNow').classList.add('hidden');
+            document.getElementById('replayControllerBar').classList.remove('hidden');
+
+            document.getElementById('modeIndicatorBadge').textContent = '戰役回放 REPLAY';
+            document.getElementById('modeIndicatorBadge').className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30";
+
+            const scrubber = document.getElementById('replayScrubber');
+            scrubber.max = replayRecord.frames.length - 1;
+            scrubber.value = 0;
+
+            applyReplayFrame(0);
+            centerOnGeneral();
+            showToast("已進入戰役回放模式，預設開啟全圖透視視野");
+        }
+
+        function applyReplayFrame(frameIdx) {
+            const frames = replayState.data?.frames;
+            if (!frames || frameIdx < 0 || frameIdx >= frames.length) return;
+
+            replayState.currentFrame = frameIdx;
+            const snap = frames[frameIdx];
+            game.turn = snap.turn;
+            game.terrain = new Uint8Array(snap.terrain);
+            game.owner = new Int8Array(snap.owner);
+            game.army = new Int32Array(snap.army);
+
+            document.getElementById('replayScrubber').value = frameIdx;
+            document.getElementById('replayTurnIndicator').textContent = `${snap.turn} / ${frames[frames.length - 1].turn} 回合`;
+            updateHudAndLeaderboard();
+        }
+
+        window.onScrubReplay = function(val) {
+            const idx = parseInt(val, 10);
+            applyReplayFrame(idx);
+        };
+
+        window.stepReplay = function(delta) {
+            if (!replayState.data) return;
+            const next = Math.max(0, Math.min(replayState.data.frames.length - 1, replayState.currentFrame + delta));
+            applyReplayFrame(next);
+        };
+
+        window.toggleReplayPlayback = function() {
+            if (!replayState.active) return;
+            replayState.playing = !replayState.playing;
+            const btn = document.getElementById('btnReplayPlayPause');
+
+            if (replayState.playing) {
+                if (replayState.currentFrame >= replayState.data.frames.length - 1) {
+                    applyReplayFrame(0);
+                }
+                btn.innerHTML = `<i class="fa-solid fa-pause mr-1"></i> 暫停`;
+                startReplayTimer();
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-play mr-1"></i> 播放`;
+                stopReplayPlayback();
+            }
+        };
+
+        function startReplayTimer() {
+            stopReplayPlayback();
+            replayState.playing = true;
+            const interval = Math.max(40, Math.round(400 / replayState.speed));
+            replayState.timer = setInterval(() => {
+                if (replayState.currentFrame < replayState.data.frames.length - 1) {
+                    applyReplayFrame(replayState.currentFrame + 1);
+                } else {
+                    stopReplayPlayback();
+                    document.getElementById('btnReplayPlayPause').innerHTML = `<i class="fa-solid fa-rotate-right mr-1"></i> 重播`;
+                }
+            }, interval);
+        }
+
+        function stopReplayPlayback() {
+            replayState.playing = false;
+            if (replayState.timer) {
+                clearInterval(replayState.timer);
+                replayState.timer = null;
+            }
+        }
+
+        window.setReplaySpeed = function(spd) {
+            replayState.speed = spd;
+            document.querySelectorAll('.replay-speed-btn').forEach(btn => {
+                const s = parseInt(btn.getAttribute('data-rspeed'), 10);
+                if (s === spd) {
+                    btn.className = "replay-speed-btn px-2 py-1 rounded text-xs font-mono bg-amber-500 text-slate-950 font-bold";
+                } else {
+                    btn.className = "replay-speed-btn px-2 py-1 rounded text-xs font-mono bg-slate-800 text-slate-300";
+                }
+            });
+            if (replayState.playing) {
+                startReplayTimer();
+            }
+        };
+
+        function renderSavedReplaysList() {
+            const container = document.getElementById('savedReplaysContainer');
+            if (game.savedReplays.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 bg-slate-900/60 rounded-xl border border-slate-800 text-xs text-slate-400">
+                        <i class="fa-solid fa-film text-2xl text-slate-600 mb-2 block"></i>
+                        尚無戰役回放紀錄，完成或進行一場對戰後即可在此隨時重溫！
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = game.savedReplays.map((rep, idx) => `
+                <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-500/40 flex flex-wrap items-center justify-between gap-2 transition">
+                    <div>
+                        <div class="text-xs font-bold text-white flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]">#${game.savedReplays.length - idx}</span>
+                            <span>${rep.width}x${rep.height} 戰役 (${rep.totalTurns} 回合)</span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 mt-1">
+                            時間: ${rep.timestamp} • 勝者/狀態: <span class="text-emerald-400 font-semibold">${rep.winnerName}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="exportReplayToJson(${idx})" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs btn-tactical" title="下載回放 JSON 檔案分享給朋友">
+                            <i class="fa-solid fa-download"></i> 匯出
+                        </button>
+                        <button onclick="watchSavedReplayByIndex(${idx})" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs btn-tactical">
+                            <i class="fa-solid fa-play mr-1"></i> 播放回放
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.watchSavedReplayByIndex = function(idx) {
+            const rep = game.savedReplays[idx];
+            if (rep) {
+                launchReplayViewer(rep);
+            }
+        };
+
+        window.exportReplayToJson = function(idx) {
+            const rep = game.savedReplays[idx];
+            if (!rep) return;
+            const blob = new Blob([JSON.stringify(rep)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `generals-replay-${rep.width}x${rep.height}-T${rep.totalTurns}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast("已匯出戰役回放檔案 (.json)");
+        };
+
+        window.importReplayFromFile = function(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (!parsed.frames || !Array.isArray(parsed.frames) || !parsed.width || !parsed.height) {
+                        showToast("無效的回放檔案格式", "danger");
+                        return;
+                    }
+                    game.savedReplays.unshift(parsed);
+                    renderSavedReplaysList();
+                    showToast("成功匯入戰役回放！點擊「播放回放」即可觀看。");
+                } catch (err) {
+                    showToast("讀取回放檔案失敗", "danger");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = "";
+        };
+
+        // ============================================================================
+        // ONLINE MULTIPLAYER ROOM SYSTEM (SUPPORTS MULTIPLE HUMANS + CUSTOM AI SLOTS)
+        // ============================================================================
+        function subscribePublicRooms() {
+            if (!db || !currentUser || !fbOps) return;
+            const roomsRef = fbOps.collection(db, 'artifacts', appId, 'public', 'data', 'rooms');
+            lobbyRoomsUnsubscribe = fbOps.onSnapshot(roomsRef, (snap) => {
+                const rooms = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data && data.status === 'waiting') {
+                        rooms.push({ id: d.id, ...data });
+                    }
+                });
+                renderPublicRoomsList(rooms);
+            }, (err) => {
+                console.warn("Public rooms listener error:", err);
+            });
+        }
+
+        function renderPublicRoomsList(rooms) {
+            const box = document.getElementById('publicRoomsList');
+            if (rooms.length === 0) {
+                box.innerHTML = `
+                    <div class="text-xs text-slate-500 py-4 text-center bg-slate-900/50 rounded-xl border border-slate-800/60">
+                        目前尚無等待中的公開房間，請點擊上方「建立多人房間」開局！
+                    </div>
+                `;
+                return;
+            }
+            box.innerHTML = rooms.map(r => {
+                const pList = r.players ? JSON.parse(r.players) : [];
+                const humanCount = pList.filter(p => !p.isBot).length;
+                const aiCount = pList.filter(p => p.isBot).length;
+                return `
+                    <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="font-mono font-bold text-emerald-400">#${r.id}</span>
+                            <span class="text-white font-semibold">${r.hostName} 的戰局</span>
+                            <span class="px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-[10px]">玩家 ${humanCount} + AI ${aiCount} (${pList.length}/8)</span>
+                            <span class="text-slate-400 text-[11px]">${r.width}x${r.height} • ${r.speed}x</span>
+                        </div>
+                        <button onclick="joinOnlineRoom('${r.id}')" class="px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold shrink-0">
+                            加入戰局
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.createOnlineRoom = async function() {
+            if (!db || !currentUser || !fbOps) {
+                showToast("雲端連線尚未就緒，請先點擊左下角「公開發佈設定」或使用單機模式", "warn");
+                return;
+            }
+            window.updateConfigLabels();
+            const roomCode = String(Math.floor(1000 + Math.random() * 9000));
+            const myName = (document.getElementById('playerNameInput').value || "指揮官").trim();
+
+            // Build initial roster: Host + Configured AI Bots (up to 8 total)
+            const initialPlayers = [
+                { uid: currentUser.uid, name: myName, colorIdx: 0, isBot: false, alive: true }
+            ];
+            const initialAiCount = Math.min(7, config.botCount);
+            for (let b = 0; b < initialAiCount; b++) {
+                initialPlayers.push({
+                    uid: `bot_${Date.now()}_${b}`,
+                    name: BOT_NAMES[b % BOT_NAMES.length],
+                    colorIdx: initialPlayers.length % PLAYER_COLORS.length,
+                    isBot: true,
+                    alive: true
+                });
+            }
+
+            const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+            await fbOps.setDoc(roomRef, {
+                hostUid: currentUser.uid,
+                hostName: myName,
+                status: 'waiting',
+                width: config.width,
+                height: config.height,
+                mountainDensity: config.mountainDensity,
+                cityDensity: config.cityDensity,
+                speed: config.speed,
+                botCount: initialAiCount,
+                visionMode: config.visionMode,
+                allowRelocate: config.allowRelocate,
+                players: JSON.stringify(initialPlayers),
+                createdAt: Date.now()
+            });
+
+            listenToActiveRoom(roomCode);
+            showToast(`已建立多人房間 #${roomCode}，可隨時增減 AI 或邀請多位朋友加入！`);
+        };
+
+        window.copyShareRoomLink = function() {
+            if (!currentRoomId) return;
+            let shareText = `來《Generals.io 戰術復刻版》跟我對戰！房號：${currentRoomId}`;
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('room', currentRoomId);
+                shareText = `${url.toString()} (房號: ${currentRoomId})`;
+            } catch (e) {}
+
+            const tempInput = document.createElement('textarea');
+            tempInput.value = shareText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            tempInput.remove();
+            showToast(`已複製房間邀請資訊 (#${currentRoomId})！`);
+        };
+
+        window.hostModifyRoomAI = async function(delta) {
+            if (!db || !currentRoomId || !currentUser || !fbOps || !activeRoomRawData) return;
+            if (activeRoomRawData.hostUid !== currentUser.uid) return;
+
+            let pList = JSON.parse(activeRoomRawData.players || "[]");
+            if (delta > 0) {
+                if (pList.length >= 8) {
+                    showToast("房間總人數已達 8 人上限！", "warn");
+                    return;
+                }
+                const botCountNow = pList.filter(p => p.isBot).length;
+                pList.push({
+                    uid: `bot_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                    name: BOT_NAMES[botCountNow % BOT_NAMES.length],
+                    colorIdx: pList.length % PLAYER_COLORS.length,
+                    isBot: true,
+                    alive: true
+                });
+            } else if (delta < 0) {
+                // Remove last AI bot
+                let lastBotIdx = -1;
+                for (let i = pList.length - 1; i >= 0; i--) {
+                    if (pList[i].isBot) {
+                        lastBotIdx = i;
+                        break;
+                    }
+                }
+                if (lastBotIdx === -1) {
+                    showToast("目前房間內已經沒有 AI 可以移除", "warn");
+                    return;
+                }
+                pList.splice(lastBotIdx, 1);
+            }
+
+            // Re-index colors cleanly
+            pList = pList.map((p, idx) => ({ ...p, colorIdx: idx % PLAYER_COLORS.length }));
+            const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            await fbOps.updateDoc(roomRef, {
+                players: JSON.stringify(pList),
+                botCount: pList.filter(p => p.isBot).length
+            });
+        };
+
+        window.hostKickSlot = async function(targetUid) {
+            if (!db || !currentRoomId || !currentUser || !fbOps || !activeRoomRawData) return;
+            if (activeRoomRawData.hostUid !== currentUser.uid) return;
+            let pList = JSON.parse(activeRoomRawData.players || "[]");
+            pList = pList.filter(p => p.uid !== targetUid).map((p, idx) => ({
+                ...p,
+                colorIdx: idx % PLAYER_COLORS.length
+            }));
+            const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            await fbOps.updateDoc(roomRef, {
+                players: JSON.stringify(pList),
+                botCount: pList.filter(p => p.isBot).length
+            });
+        };
+
+        window.joinRoomByCodeInput = function() {
+            const code = document.getElementById('inpJoinCode').value.trim();
+            if (!code) {
+                showToast("請輸入 4 位數房間號碼", "warn");
+                return;
+            }
+            window.joinOnlineRoom(code);
+        };
+
+        window.joinOnlineRoom = async function(roomCode) {
+            if (!db || !currentUser || !fbOps) {
+                showToast("雲端服務未連線", "warn");
+                return;
+            }
+            const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+            const snap = await fbOps.getDoc(roomRef);
+            if (!snap.exists()) {
+                showToast("找不到該房間號碼", "danger");
+                return;
+            }
+            const data = snap.data();
+            let pList = JSON.parse(data.players || "[]");
+            const myName = (document.getElementById('playerNameInput').value || "指揮官").trim();
+
+            if (!pList.some(p => p.uid === currentUser.uid)) {
+                // If room has 8 slots full but contains AI bots, automatically replace one AI bot with the joining human player!
+                if (pList.length >= 8) {
+                    const botIdx = pList.findIndex(p => p.isBot);
+                    if (botIdx !== -1) {
+                        pList.splice(botIdx, 1);
+                    } else {
+                        showToast("該房間已滿 8 名真人玩家！", "danger");
+                        return;
+                    }
+                }
+                // Insert human player before AI bots so humans get top indices
+                const firstBotIdx = pList.findIndex(p => p.isBot);
+                const newHuman = {
+                    uid: currentUser.uid,
+                    name: myName,
+                    colorIdx: 0,
+                    isBot: false,
+                    alive: true
+                };
+                if (firstBotIdx === -1) {
+                    pList.push(newHuman);
+                } else {
+                    pList.splice(firstBotIdx, 0, newHuman);
+                }
+                pList = pList.map((p, idx) => ({ ...p, colorIdx: idx % PLAYER_COLORS.length }));
+                await fbOps.updateDoc(roomRef, { players: JSON.stringify(pList) });
+            }
+
+            listenToActiveRoom(roomCode);
+        };
+
+        function listenToActiveRoom(roomCode) {
+            if (roomUnsubscribe) roomUnsubscribe();
+            currentRoomId = roomCode;
+            pendingClientMoves = {};
+            lastProcessedClientSeq = {};
+            const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+
+            document.getElementById('activeRoomBox').classList.remove('hidden');
+            document.getElementById('roomCodeBadge').textContent = `房號: ${roomCode}`;
+
+            roomUnsubscribe = fbOps.onSnapshot(roomRef, (snap) => {
+                if (!snap.exists()) {
+                    leaveOnlineRoom();
+                    return;
+                }
+                const data = snap.data();
+                activeRoomRawData = data;
+                const pList = JSON.parse(data.players || "[]");
+                const isHost = data.hostUid === currentUser.uid;
+
+                const humanCount = pList.filter(p => !p.isBot).length;
+                const aiCount = pList.filter(p => p.isBot).length;
+                document.getElementById('roomSlotCounterText').textContent = `參戰席位 (${pList.length} / 8) — 真人玩家 ${humanCount} 名 • AI 對手 ${aiCount} 名`;
+                document.getElementById('roomSpecsText').textContent = `${data.width}x${data.height} | 山脈 ${data.mountainDensity}% | 城市 ${data.cityDensity}% | ${data.speed}x`;
+
+                // Render 8-Slot Grid showing all Humans, Bots, and Open Slots
+                const slotsHtml = [];
+                for (let s = 0; s < 8; s++) {
+                    const p = pList[s];
+                    if (p) {
+                        const c = PLAYER_COLORS[s % PLAYER_COLORS.length];
+                        const canKick = isHost && p.uid !== currentUser.uid;
+                        slotsHtml.push(`
+                            <div class="p-2 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-1.5 truncate">
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${c.hex}"></span>
+                                    <span class="font-bold text-white truncate">${p.name}</span>
+                                    <span class="text-[10px] px-1 rounded ${p.isBot ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}">${p.isBot ? 'AI' : '玩家'}</span>
+                                </div>
+                                ${canKick ? `<button onclick="hostKickSlot('${p.uid}')" class="text-slate-400 hover:text-rose-400 ml-1" title="移除此席位"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                            </div>
+                        `);
+                    } else {
+                        slotsHtml.push(`
+                            <div class="p-2 rounded-xl bg-slate-950/50 border border-dashed border-slate-800 flex items-center justify-center text-[11px] text-slate-500">
+                                空位 (等待加入)
+                            </div>
+                        `);
+                    }
+                }
+                document.getElementById('roomPlayersList').innerHTML = slotsHtml.join('');
+
+                document.getElementById('btnHostStartOnline').classList.toggle('hidden', !isHost);
+                document.getElementById('hostAiControlGroup').classList.toggle('hidden', !isHost);
+
+                // Collect individual per-player move fields (`move_<uid>`) so multiple players never overwrite each other!
+                if (isHost) {
+                    Object.keys(data).forEach(k => {
+                        if (k.startsWith('move_')) {
+                            const uid = k.slice(5);
+                            try {
+                                const cmd = JSON.parse(data[k]);
+                                if (cmd && cmd.seq && (!lastProcessedClientSeq[uid] || cmd.seq > lastProcessedClientSeq[uid])) {
+                                    lastProcessedClientSeq[uid] = cmd.seq;
+                                    if (!pendingClientMoves[uid]) pendingClientMoves[uid] = [];
+                                    if (Array.isArray(cmd.batch)) {
+                                        pendingClientMoves[uid].push(...cmd.batch);
+                                    } else {
+                                        pendingClientMoves[uid].push(cmd);
+                                    }
+                                }
+                            } catch (e) {}
+                        }
+                    });
+                }
+
+                // If game started and client is still in lobby, launch client game
+                if (data.status === 'playing' && !isHost && data.gameState) {
+                    const stateObj = JSON.parse(data.gameState);
+                    const myIdx = Math.max(0, stateObj.players.findIndex(p => p.uid === currentUser.uid));
+
+                    if (game.mode !== 'online_client' || !game.isRunning) {
+                        config.visionMode = data.visionMode || 'standard';
+                        config.allowRelocate = data.allowRelocate !== undefined ? data.allowRelocate : true;
+                        setupAndLaunchMatch('online_client', data.width, data.height, stateObj.players, myIdx, stateObj);
+                    } else {
+                        // Sync latest turn state from Host
+                        game.turn = stateObj.turn;
+                        game.terrain = new Uint8Array(stateObj.terrain);
+                        game.owner = new Int8Array(stateObj.owner);
+                        game.army = new Int32Array(stateObj.army);
+                        game.players = stateObj.players;
+                        updateRelocateButtonUI();
+                        recordTurnSnapshot();
+                        updateHudAndLeaderboard();
+                        checkVictoryCondition();
+                    }
+                }
+            }, (err) => {
+                console.warn("Room snapshot error:", err);
+            });
+        }
+
+        window.hostStartOnlineGame = async function() {
+            if (!db || !currentRoomId || !currentUser || !fbOps) return;
+            const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+            const snap = await fbOps.getDoc(roomRef);
+            if (!snap.exists()) return;
+            const data = snap.data();
+            let players = JSON.parse(data.players || "[]").map((p, i) => ({
+                id: i,
+                uid: p.uid,
+                name: p.name,
+                colorIdx: i % PLAYER_COLORS.length,
+                isBot: !!p.isBot,
+                alive: true,
+                generalIndex: 0,
+                relocateUsed: false
+            }));
+
+            // Ensure at least 2 participants (if host is alone and removed all bots, add 1 AI bot automatically)
+            if (players.length < 2) {
+                players.push({
+                    id: 1,
+                    uid: 'bot_auto_1',
+                    name: BOT_NAMES[0],
+                    colorIdx: 1,
+                    isBot: true,
+                    alive: true,
+                    generalIndex: 0,
+                    relocateUsed: false
+                });
+            }
+
+            config.width = data.width;
+            config.height = data.height;
+            config.mountainDensity = data.mountainDensity;
+            config.cityDensity = data.cityDensity;
+            config.speed = data.speed;
+            config.visionMode = data.visionMode || 'standard';
+            config.allowRelocate = data.allowRelocate !== undefined ? data.allowRelocate : true;
+
+            const myHostIdx = Math.max(0, players.findIndex(p => p.uid === currentUser.uid));
+            setupAndLaunchMatch('online_host', data.width, data.height, players, myHostIdx);
+            await broadcastHostStateToFirestore('playing');
+        };
+
+        async function broadcastHostStateToFirestore(statusOverride = null) {
+            if (!db || !currentRoomId || !fbOps) return;
+            try {
+                const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                const payload = {
+                    turn: game.turn,
+                    terrain: Array.from(game.terrain),
+                    owner: Array.from(game.owner),
+                    army: Array.from(game.army),
+                    players: game.players,
+                    allowRelocate: game.allowRelocate
+                };
+                const updateData = { gameState: JSON.stringify(payload) };
+                if (statusOverride) updateData.status = statusOverride;
+                await fbOps.updateDoc(roomRef, updateData);
+            } catch (e) {}
+        }
+
+        // Per-player dedicated field (`move_<uid>`) prevents race conditions when 2+ clients move at the same time
+        async function sendClientMoveToHost(from, to, isHalf) {
+            if (!db || !currentRoomId || !currentUser || !fbOps) return;
+            try {
+                const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                const updatePayload = {};
+                updatePayload[`move_${currentUser.uid}`] = JSON.stringify({
+                    type: 'move',
+                    from,
+                    to,
+                    isHalf,
+                    seq: Date.now() + Math.random()
+                });
+                await fbOps.updateDoc(roomRef, updatePayload);
+            } catch (e) {}
+        }
+
+        async function sendClientRelocateToHost(targetCityIdx) {
+            if (!db || !currentRoomId || !currentUser || !fbOps) return;
+            try {
+                const roomRef = fbOps.doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                const updatePayload = {};
+                updatePayload[`move_${currentUser.uid}`] = JSON.stringify({
+                    type: 'relocate',
+                    targetCityIdx,
+                    seq: Date.now() + Math.random()
+                });
+                await fbOps.updateDoc(roomRef, updatePayload);
+            } catch (e) {}
+        }
+
+        window.leaveOnlineRoom = function() {
+            if (roomUnsubscribe) {
+                roomUnsubscribe();
+                roomUnsubscribe = null;
+            }
+            currentRoomId = null;
+            document.getElementById('activeRoomBox').classList.add('hidden');
+        };
+
+        // ============================================================================
+        // NAVIGATION HELPERS
+        // ============================================================================
+        window.returnToLobby = function() {
+            stopGameLoop();
+            stopReplayPlayback();
+            replayState.active = false;
+            game.isRunning = false;
+
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('gameHud').classList.add('hidden');
+            document.getElementById('lobbyScreen').classList.remove('hidden');
+        };
+
+        window.closeModalAndRestart = function() {
+            document.getElementById('gameOverModal').classList.add('hidden');
+            window.startLocalGame();
+        };
+
+        // ============================================================================
+        // STARTUP
+        // ============================================================================
+        window.onload = function() {
+            window.updateConfigLabels();
+            initFirebaseSystem();
+            requestAnimationFrame(renderGameLoop);
+        };
+    </script>
+</body>
+</html>
