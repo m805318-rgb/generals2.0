@@ -106,10 +106,10 @@
                     <!-- Player Custom Color Picker -->
                     <div class="mt-3.5">
                         <div class="flex items-center justify-between mb-1.5">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">選擇代表色系 (低飽和戰術色)</label>
-                            <span id="selectedColorName" class="text-[11px] font-bold text-emerald-400">戰術翠綠</span>
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">選擇代表色</label>
+                            <span id="selectedColorName" class="text-[11px] font-bold text-emerald-400">翠綠</span>
                         </div>
-                        <div id="lobbyColorPicker" class="grid grid-cols-8 gap-1.5 p-1.5 bg-slate-900/90 rounded-xl border border-slate-800"></div>
+                        <div id="lobbyColorPicker" class="grid grid-cols-6 gap-2 p-2 bg-slate-900/90 rounded-xl border border-slate-800"></div>
                     </div>
 
                     <!-- Mode Switcher Tabs -->
@@ -174,9 +174,9 @@
                     <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
                         <div>
                             <h2 class="text-base font-bold text-white flex items-center gap-2">
-                                <i class="fa-solid fa-sliders text-emerald-400"></i> 戰場地圖與參數設定
+                                <i class="fa-solid fa-sliders text-emerald-400"></i> 地圖與參數設定
                             </h2>
-                            <p class="text-xs text-slate-400">支援超大 100x100 網格、僅保留純粹「山脈」與「城市」</p>
+                            <p class="text-xs text-slate-400">自訂地圖尺寸、山脈與城市密度</p>
                         </div>
                         <button onclick="resetDefaultSettings()" class="text-xs text-slate-400 hover:text-emerald-400 transition flex items-center gap-1">
                             <i class="fa-solid fa-rotate-left"></i> 恢復預設
@@ -299,13 +299,13 @@
                         <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                                 <div class="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-people-group text-sky-400"></i> 陣營組隊模式 (同隊共享視野・走過隊友領地可合流兵力並覆蓋顏色)
+                                    <i class="fa-solid fa-people-group text-sky-400"></i> 組隊模式 (同隊共享視野・主堡鄰近生成・兵力可合流)
                                 </div>
-                                <p class="text-[11px] text-slate-400 mt-0.5">同隊成員各自擁有一座主堡；行軍經過隊友普通領地或城市時，將直接接管該格兵力並染為自身顏色</p>
+                                <p class="text-[11px] text-slate-400 mt-0.5">隊友主堡會生成在附近；行軍經過隊友領地或城市時，可合流兵力並染為自身顏色</p>
                             </div>
                             <div class="flex items-center gap-1.5 shrink-0">
-                                <button onclick="setLobbyTeamMode(false)" id="btnTeamOff" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white border border-emerald-400">個人混戰 (FFA)</button>
-                                <button onclick="setLobbyTeamMode(true)" id="btnTeamOn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">組隊同盟 (Teams)</button>
+                                <button onclick="setLobbyTeamMode(false)" id="btnTeamOff" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white border border-emerald-400">個人混戰</button>
+                                <button onclick="setLobbyTeamMode(true)" id="btnTeamOn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">組隊同盟</button>
                             </div>
                         </div>
                     </div>
@@ -315,10 +315,10 @@
                 <div id="panelSingle" class="mt-5 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div class="text-xs text-slate-400 flex items-center gap-2">
                         <i class="fa-solid fa-circle-info text-emerald-400"></i>
-                        <span id="visionModeDescText">標準模式：視野內高亮照明，視野外為暗色陰影並顯示山脈障礙。</span>
+                        <span id="visionModeDescText">標準視野：視野內明亮，視野外為暗色陰影並顯示山脈。</span>
                     </div>
                     <button onclick="startLocalGame()" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 btn-tactical">
-                        <i class="fa-solid fa-play"></i> 立即開始單機對戰
+                        <i class="fa-solid fa-play"></i> 開始單機對戰
                     </button>
                 </div>
 
@@ -542,7 +542,7 @@
                         <div class="flex items-center gap-2.5">
                             <span class="w-12 text-right">總兵力</span>
                             <span class="w-9 text-right">領地</span>
-                            <span class="w-9 text-right text-sky-400" title="主堡與已佔領城市總數">城市</span>
+                            <span id="lbHeaderCities" class="hidden w-9 text-right text-sky-400" title="主堡與已佔領城市總數">城市</span>
                         </div>
                     </div>
                     <div id="leaderboardRows" class="space-y-1 text-xs"></div>
@@ -697,7 +697,7 @@
     <!-- ==================== APPLICATION & FIREBASE SCRIPT ==================== -->
     <script>
         // ============================================================================
-        // CONSTANTS & PLAYER PALETTE (Low-saturation tactical colors for eye comfort)
+        // CONSTANTS & PLAYER PALETTE (12 distinct hues & brightness choices)
         // ============================================================================
         const TILE_EMPTY = 0;
         const TILE_MOUNTAIN = 1;
@@ -705,21 +705,21 @@
         const TILE_GENERAL = 3;
 
         const PLAYER_COLORS = [
-            { name: "戰術翠綠", hex: "#237a57", dark: "#134e3a", border: "#4ca37e" },
-            { name: "暗緋深紅", hex: "#9e3b3b", dark: "#5c1f1f", border: "#c76363" },
-            { name: "深海鋼藍", hex: "#315b8a", dark: "#1b3554", border: "#5b87b8" },
-            { name: "古銅琥珀", hex: "#9c6b27", dark: "#593b12", border: "#c4924d" },
-            { name: "暮光暗紫", hex: "#684282", dark: "#3b234a", border: "#936cad" },
-            { name: "灰調青藍", hex: "#286e78", dark: "#153f45", border: "#529aa3" },
-            { name: "煙燻玫瑰", hex: "#8c4266", dark: "#4f2137", border: "#b5698d" },
-            { name: "苔原橄欖", hex: "#58732c", dark: "#324217", border: "#809c51" },
-            { name: "深岩板灰", hex: "#4d5b6b", dark: "#2b343d", border: "#768799" },
-            { name: "赤陶赭石", hex: "#914d32", dark: "#542a19", border: "#ba7357" },
-            { name: "松針墨綠", hex: "#285948", dark: "#163329", border: "#4d8270" },
-            { name: "靛青夜藍", hex: "#3f4685", dark: "#22264d", border: "#6971b0" }
+            { name: "翠綠", hex: "#10b981", dark: "#065f46", border: "#6ee7b7" },
+            { name: "赤紅", hex: "#ef4444", dark: "#7f1d1d", border: "#fca5a5" },
+            { name: "寶藍", hex: "#3b82f6", dark: "#1e3a8a", border: "#93c5fd" },
+            { name: "亮黃", hex: "#eab308", dark: "#713f12", border: "#fde047" },
+            { name: "羅蘭紫", hex: "#a855f7", dark: "#581c87", border: "#d8b4fe" },
+            { name: "青色", hex: "#06b6d4", dark: "#164e63", border: "#67e8f9" },
+            { name: "烈焰橘", hex: "#f97316", dark: "#7c2d12", border: "#fdba74" },
+            { name: "桃粉", hex: "#ec4899", dark: "#831843", border: "#f9a8d4" },
+            { name: "螢光綠", hex: "#84cc16", dark: "#365314", border: "#bef264" },
+            { name: "深海藍", hex: "#1d4ed8", dark: "#172554", border: "#60a5fa" },
+            { name: "暗酒紅", hex: "#9f1239", dark: "#4c0519", border: "#fb7185" },
+            { name: "冷岩灰", hex: "#64748b", dark: "#1e293b", border: "#cbd5e1" }
         ];
 
-        const TEAM_NAMES = ["阿爾法同盟 (A隊)", "貝塔聯軍 (B隊)", "伽瑪戰線 (C隊)", "德爾塔軍團 (D隊)"];
+        const TEAM_NAMES = ["A隊", "B隊", "C隊", "D隊"];
 
         const BOT_NAMES = [
             "阿爾法AI", "天網戰術家", "鋼鐵將軍", "閃電突擊者", 
@@ -759,6 +759,7 @@
             relocateTargetingMode: false,
             allowRelocate: true,
             teamMode: false,
+            visionMode: 'standard', // Active match's locked vision mode
             moveQueue: [], // [{ from, to, isHalf }]
             botMemory: {}, // AI persistent target state
             turnTimer: null,
@@ -989,9 +990,9 @@
                 full: '全圖透視'
             };
             const descs = {
-                standard: '標準模式：視野內高亮照明，視野外為深暗色陰影並顯示山脈與障礙。',
-                blind: '全黑迷霧模式：視野外完全漆黑且不顯示地圖邊框，連自己出生在地圖哪一角都無從得知！',
-                full: '全圖透視模式：無任何迷霧遮蔽，可直接觀察全場所有動向。'
+                standard: '標準視野：視野內明亮，視野外為暗色陰影並顯示山脈。',
+                blind: '全黑迷霧：視野外完全漆黑且不顯示地圖邊框。',
+                full: '全圖透視：無迷霧遮蔽，可直接觀察全場動向。'
             };
             document.getElementById('lblVisionMode').textContent = labels[vmode] || '標準視野';
             document.getElementById('visionModeDescText').textContent = descs[vmode] || '';
@@ -1039,8 +1040,9 @@
                 const isSelected = idx === config.myColorIdx;
                 return `
                     <button type="button" onclick="selectMyLobbyColor(${idx})" title="${c.name}"
-                        class="w-7 h-7 rounded-lg transition transform ${isSelected ? 'scale-110 ring-2 ring-white shadow-lg' : 'opacity-75 hover:opacity-100'}"
+                        class="h-7 rounded-lg transition transform flex items-center justify-center text-[10px] font-bold text-white shadow-sm ${isSelected ? 'scale-105 ring-2 ring-white shadow-lg' : 'opacity-80 hover:opacity-100'}"
                         style="background-color: ${c.hex}; border: 2px solid ${c.border}">
+                        ${isSelected ? '<i class="fa-solid fa-check drop-shadow"></i>' : ''}
                     </button>
                 `;
             }).join('');
@@ -1085,13 +1087,18 @@
         }
 
         // ============================================================================
-        // MAP GENERATOR WITH MAXIMIZED DISPERSION & CONNECTIVITY GUARANTEE
+        // MAP GENERATOR WITH TEAM PROXIMITY & ENEMY DISPERSION GUARANTEE
         // ============================================================================
-        function generateBattlefieldMap(width, height, mountainPct, cityPct, playerList) {
+        function generateBattlefieldMap(width, height, mountainPct, cityPct, playerList, isTeamMode = false) {
             const totalTiles = width * height;
             let terrain = new Uint8Array(totalTiles);
             let owner = new Int8Array(totalTiles).fill(-1);
             let army = new Int32Array(totalTiles).fill(0);
+
+            // Ideal distance between allied teammates so they spawn nearby (e.g. 5~11 tiles apart) without blocking each other
+            const mapSpan = Math.min(width, height);
+            const minAllyDist = Math.max(4, Math.floor(mapSpan * 0.14));
+            const maxAllyDist = Math.max(8, Math.floor(mapSpan * 0.28));
 
             const maxAttempts = 20;
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -1099,16 +1106,15 @@
                 owner.fill(-1);
                 army.fill(0);
 
-                // 1. Place Generals with Farthest-Point Sampling to maximize dispersion across the map
                 const generals = [];
-                const margin = Math.max(1, Math.min(3, Math.floor(Math.min(width, height) * 0.08)));
+                const margin = Math.max(1, Math.min(3, Math.floor(mapSpan * 0.08)));
 
                 for (let p = 0; p < playerList.length; p++) {
+                    const pTeam = playerList[p].team;
                     let bestCand = null;
-                    let bestMinDist = -1;
+                    let bestScore = -Infinity;
 
-                    // Evaluate 250 random candidate coordinates and pick the one that maximizes distance to the nearest existing General
-                    const sampleCount = p === 0 ? 1 : 260;
+                    const sampleCount = p === 0 ? 1 : 280;
                     for (let s = 0; s < sampleCount; s++) {
                         const gx = margin + Math.floor(Math.random() * Math.max(1, width - margin * 2));
                         const gy = margin + Math.floor(Math.random() * Math.max(1, height - margin * 2));
@@ -1116,33 +1122,58 @@
                         if (terrain[idx] !== TILE_EMPTY) continue;
 
                         if (generals.length === 0) {
-                            bestCand = { x: gx, y: gy, idx };
+                            bestCand = { x: gx, y: gy, idx, team: pTeam };
                             break;
                         }
 
-                        let nearestDist = Infinity;
+                        let nearestEnemyDist = Infinity;
+                        let nearestAllyDist = Infinity;
+                        let tooCloseToAnyone = false;
+
                         for (const prev of generals) {
-                            // Combine Manhattan and Euclidean distance for balanced radial dispersion
                             const dx = gx - prev.x;
                             const dy = gy - prev.y;
-                            const dist = Math.hypot(dx, dy) + (Math.abs(dx) + Math.abs(dy)) * 0.35;
-                            if (dist < nearestDist) {
-                                nearestDist = dist;
+                            const dist = Math.hypot(dx, dy);
+                            if (dist < 4) {
+                                tooCloseToAnyone = true;
+                                break;
+                            }
+                            if (isTeamMode && prev.team === pTeam) {
+                                if (dist < nearestAllyDist) nearestAllyDist = dist;
+                            } else {
+                                const weightedDist = dist + (Math.abs(dx) + Math.abs(dy)) * 0.3;
+                                if (weightedDist < nearestEnemyDist) nearestEnemyDist = weightedDist;
                             }
                         }
 
-                        // Slight tie-breaker preference away from center so generals spread well
-                        const jitter = Math.random() * 1.5;
-                        if (nearestDist + jitter > bestMinDist) {
-                            bestMinDist = nearestDist + jitter;
-                            bestCand = { x: gx, y: gy, idx };
+                        if (tooCloseToAnyone) continue;
+
+                        let score = 0;
+                        if (isTeamMode && nearestAllyDist < Infinity) {
+                            // Teammate already placed: strongly prefer spawning within [minAllyDist, maxAllyDist] of ally, while staying far from enemies!
+                            let allyProxPenalty = 0;
+                            if (nearestAllyDist < minAllyDist) {
+                                allyProxPenalty = (minAllyDist - nearestAllyDist) * 18;
+                            } else if (nearestAllyDist > maxAllyDist) {
+                                allyProxPenalty = (nearestAllyDist - maxAllyDist) * 14;
+                            }
+                            const enemyFactor = nearestEnemyDist < Infinity ? nearestEnemyDist * 1.2 : 20;
+                            score = enemyFactor - allyProxPenalty + Math.random() * 1.5;
+                        } else {
+                            // First member of this team (or FFA): maximize distance from all existing generals
+                            score = nearestEnemyDist + Math.random() * 1.5;
+                        }
+
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestCand = { x: gx, y: gy, idx, team: pTeam };
                         }
                     }
 
                     if (!bestCand) {
                         for (let i = 0; i < totalTiles; i++) {
                             if (terrain[i] === TILE_EMPTY) {
-                                bestCand = { x: i % width, y: Math.floor(i / width), idx: i };
+                                bestCand = { x: i % width, y: Math.floor(i / width), idx: i, team: pTeam };
                                 break;
                             }
                         }
@@ -1288,6 +1319,7 @@
         function setupAndLaunchMatch(mode, width, height, players, myPlayerIndex, pregeneratedMap = null) {
             stopGameLoop();
             stopReplayPlayback();
+            replayState.active = false;
 
             game.mode = mode;
             game.width = width;
@@ -1308,6 +1340,9 @@
             game.teamMode = pregeneratedMap && typeof pregeneratedMap.teamMode === 'boolean'
                 ? pregeneratedMap.teamMode
                 : config.teamMode;
+            game.visionMode = pregeneratedMap && pregeneratedMap.visionMode
+                ? pregeneratedMap.visionMode
+                : config.visionMode;
             game.moveQueue = [];
             game.botMemory = {};
             game.replayHistory = [];
@@ -1319,7 +1354,7 @@
                 game.owner = new Int8Array(pregeneratedMap.owner);
                 game.army = new Int32Array(pregeneratedMap.army);
             } else {
-                const generated = generateBattlefieldMap(width, height, config.mountainDensity, config.cityDensity, game.players);
+                const generated = generateBattlefieldMap(width, height, config.mountainDensity, config.cityDensity, game.players, game.teamMode);
                 game.terrain = generated.terrain;
                 game.owner = generated.owner;
                 game.army = generated.army;
@@ -1341,14 +1376,14 @@
 
             const modeLabel = mode === 'single'
                 ? (game.teamMode ? '單人組隊 AI' : '單人練習 AI')
-                : (game.teamMode ? '線上組隊同盟' : '線上即時對戰');
+                : (game.teamMode ? '線上組隊' : '線上對戰');
             document.getElementById('modeIndicatorBadge').textContent = modeLabel;
             document.getElementById('modeIndicatorBadge').className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
 
             // Display locked speed & vision mode badges
-            const vNames = { standard: '標準視野 (已鎖定)', blind: '全黑迷霧 (已鎖定)', full: '全圖透視 (已鎖定)' };
-            document.getElementById('hudLockedSpeedBadge').textContent = `速度 ${config.speed}x`;
-            document.getElementById('hudLockedVisionBadge').textContent = vNames[config.visionMode] || '標準視野';
+            const vNames = { standard: '標準視野', blind: '全黑迷霧', full: '全圖透視' };
+            document.getElementById('hudLockedSpeedBadge').textContent = `${config.speed}x`;
+            document.getElementById('hudLockedVisionBadge').textContent = vNames[game.visionMode] || '標準視野';
 
             updateSplit50UI();
             updateRelocateButtonUI();
@@ -1777,9 +1812,11 @@
             const myTiles = [];
             const visibleEnemies = [];
             let enemyGeneralTile = -1;
+            let myTotalArmy = 0;
 
             for (let i = 0; i < total; i++) {
                 if (game.owner[i] === botIdx) {
+                    myTotalArmy += game.army[i];
                     if (game.army[i] >= 2) {
                         myTiles.push(i);
                     }
@@ -1805,10 +1842,17 @@
 
             if (myTiles.length === 0) return null;
 
+            const genArmy = game.army[genIdx];
+            // Minimum safe garrison to keep inside the General so it's never left defenseless
+            const minSafeGarrison = Math.min(45, Math.max(8, Math.floor(game.turn / 6)));
+
             // Sort owned tiles by army size descending
             myTiles.sort((a, b) => game.army[b] - game.army[a]);
             const largestTile = myTiles[0];
             const largestArmy = game.army[largestTile];
+            // Best field army (excluding the General itself if the General needs to stay garrisoned)
+            const bestFieldTile = myTiles.find(t => t !== genIdx) ?? largestTile;
+            const bestFieldArmy = game.army[bestFieldTile];
 
             if (!game.botMemory[botIdx]) {
                 game.botMemory[botIdx] = { lastFrom: -1, knownEnemyGeneral: -1 };
@@ -1822,7 +1866,7 @@
             }
 
             // 1. IMMEDIATE ADJACENT LETHAL / TACTICAL STRIKES
-            for (const t of myTiles.slice(0, 10)) {
+            for (const t of myTiles.slice(0, 12)) {
                 const nbs = getPassableNeighbors(t);
                 for (const nb of nbs) {
                     const nbOwner = game.owner[nb];
@@ -1832,18 +1876,22 @@
                     if (isEnemy && game.terrain[nb] === TILE_GENERAL && game.army[t] > game.army[nb] + 1) {
                         return { from: t, to: nb, isHalf: false };
                     }
-                    // Priority 1B: Crush adjacent enemy threat if we have superior numbers
+                    // Priority 1B: Crush adjacent enemy threat if we have superior numbers (don't empty General below garrison unless lethal)
                     if (isEnemy && game.army[t] > game.army[nb] + 1) {
+                        if (t === genIdx && (game.army[t] - game.army[nb] < 4) && game.army[nb] < 10) {
+                            continue;
+                        }
                         return { from: t, to: nb, isHalf: false };
                     }
                     // Priority 1C: Capture neutral or enemy City when we have comfortable margin
-                    if (!arePlayersAllied(botIdx, nbOwner) && game.terrain[nb] === TILE_CITY && game.army[t] > game.army[nb] + 3) {
-                        return { from: t, to: nb, isHalf: false };
+                    if (!arePlayersAllied(botIdx, nbOwner) && game.terrain[nb] === TILE_CITY && game.army[t] > game.army[nb] + 4) {
+                        const useHalf = (t === genIdx && game.army[t] > game.army[nb] * 2 + 12);
+                        return { from: t, to: nb, isHalf: useHalf };
                     }
                 }
             }
 
-            // 2. EMERGENCY GENERAL DEFENSE (Enemy spotted near our General!)
+            // 2. GENERAL DEFENSE & GARRISON REINFORCEMENT
             let urgentThreatTile = -1;
             let highestThreatScore = 0;
 
@@ -1851,8 +1899,8 @@
                 const ex = eIdx % w, ey = Math.floor(eIdx / w);
                 const distToGen = Math.abs(ex - gx) + Math.abs(ey - gy);
                 const enemyArmy = game.army[eIdx];
-                if (distToGen <= 5 && enemyArmy >= 3) {
-                    const threatScore = (enemyArmy * 2) / Math.max(1, distToGen);
+                if (distToGen <= 6 && enemyArmy >= 2) {
+                    const threatScore = (enemyArmy * 2.5) / Math.max(1, distToGen);
                     if (threatScore > highestThreatScore) {
                         highestThreatScore = threatScore;
                         urgentThreatTile = eIdx;
@@ -1861,86 +1909,111 @@
             }
 
             if (urgentThreatTile !== -1) {
-                const genArmy = game.army[genIdx];
                 const threatArmy = game.army[urgentThreatTile];
 
-                // If our largest stack is stronger than the intruder, intercept the intruder directly!
-                if (largestArmy > threatArmy + 2) {
-                    const stepToIntercept = getNextStepTowards(largestTile, urgentThreatTile);
+                // If we have an advantage with our field army, counter-attack & intercept the intruder!
+                if (bestFieldTile !== genIdx && bestFieldArmy > threatArmy + 2) {
+                    const stepToIntercept = getNextStepTowards(bestFieldTile, urgentThreatTile);
                     if (stepToIntercept !== -1) {
-                        return { from: largestTile, to: stepToIntercept, isHalf: false };
+                        return { from: bestFieldTile, to: stepToIntercept, isHalf: false };
                     }
                 }
 
-                // Otherwise, pull our largest field army back into the General to fortify defense!
-                if (largestTile !== genIdx && genArmy <= threatArmy + 8) {
-                    const stepHome = getNextStepTowards(largestTile, genIdx);
+                // If our General itself has a massive advantage (can crush the intruder and still keep safe garrison), strike out!
+                if (genArmy > threatArmy + minSafeGarrison + 4) {
+                    const stepFromGen = getNextStepTowards(genIdx, urgentThreatTile);
+                    if (stepFromGen !== -1) {
+                        return { from: genIdx, to: stepFromGen, isHalf: true };
+                    }
+                }
+
+                // Otherwise, our General is threatened and needs defense: pull our strongest field army back to the General!
+                if (bestFieldTile !== genIdx && genArmy <= threatArmy + minSafeGarrison) {
+                    const stepHome = getNextStepTowards(bestFieldTile, genIdx);
                     if (stepHome !== -1) {
-                        return { from: largestTile, to: stepHome, isHalf: false };
+                        return { from: bestFieldTile, to: stepHome, isHalf: false };
                     }
                 }
             }
 
-            // 3. ALL-OUT OFFENSIVE ON KNOWN ENEMY GENERAL
-            if (mem.knownEnemyGeneral !== -1 && largestArmy > 12) {
-                const stepToEnemyGen = getNextStepTowards(largestTile, mem.knownEnemyGeneral);
-                if (stepToEnemyGen !== -1) {
-                    return { from: largestTile, to: stepToEnemyGen, isHalf: false };
+            // Proactive Garrison: If General has fewer troops than minSafeGarrison and we have a large field stack nearby, reinforce General
+            if (genArmy < minSafeGarrison && bestFieldTile !== genIdx && bestFieldArmy >= 10) {
+                const stepHome = getNextStepTowards(bestFieldTile, genIdx);
+                if (stepHome !== -1) {
+                    return { from: bestFieldTile, to: stepHome, isHalf: false };
                 }
             }
 
-            // 4. ENGAGE VISIBLE ENEMY BORDER (Concentrate largest stack towards strongest/nearest enemy)
-            if (visibleEnemies.length > 0) {
-                // Pick the closest visible enemy to our largest stack
-                const lx = largestTile % w, ly = Math.floor(largestTile / w);
-                let targetEnemy = visibleEnemies[0];
+            // Pick the primary offensive stack: use 50% split if marching out from the General so the General stays defended!
+            const canUseGeneralForOffense = (genArmy > minSafeGarrison * 1.6 && urgentThreatTile === -1);
+            const attackerTile = (largestTile === genIdx && !canUseGeneralForOffense) ? bestFieldTile : largestTile;
+            const attackerArmy = game.army[attackerTile];
+            const splitWhenLeavingGen = (attackerTile === genIdx);
+
+            // 3. OFFENSIVE ON KNOWN ENEMY GENERAL WHEN ADVANTAGED
+            if (mem.knownEnemyGeneral !== -1 && attackerArmy > game.army[mem.knownEnemyGeneral] + 6) {
+                const stepToEnemyGen = getNextStepTowards(attackerTile, mem.knownEnemyGeneral);
+                if (stepToEnemyGen !== -1) {
+                    return { from: attackerTile, to: stepToEnemyGen, isHalf: splitWhenLeavingGen };
+                }
+            }
+
+            // 4. ENGAGE VISIBLE ENEMIES WHEN HOLDING ADVANTAGE
+            if (visibleEnemies.length > 0 && attackerArmy >= 5) {
+                const lx = attackerTile % w, ly = Math.floor(attackerTile / w);
+                let targetEnemy = -1;
                 let bestScore = -Infinity;
 
                 for (const eIdx of visibleEnemies) {
                     const ex = eIdx % w, ey = Math.floor(eIdx / w);
                     const dist = Math.abs(ex - lx) + Math.abs(ey - ly);
-                    // Prefer attacking enemy tiles we can beat, or marching our main stack to the front
-                    const canBeatBonus = largestArmy > game.army[eIdx] + 2 ? 30 : 0;
-                    const cityBonus = game.terrain[eIdx] === TILE_CITY ? 20 : 0;
-                    const score = canBeatBonus + cityBonus - dist * 3;
-                    if (score > bestScore) {
-                        bestScore = score;
-                        targetEnemy = eIdx;
+                    const eArmy = game.army[eIdx];
+                    const effectiveAtk = splitWhenLeavingGen ? Math.floor(attackerArmy / 2) : (attackerArmy - 1);
+
+                    // Attack when we have a clear troop advantage or overall army lead
+                    if (effectiveAtk > eArmy + 1 || myTotalArmy > eArmy * 2.5) {
+                        const cityBonus = game.terrain[eIdx] === TILE_CITY ? 25 : 0;
+                        const score = (effectiveAtk - eArmy) * 2 + cityBonus - dist * 3;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            targetEnemy = eIdx;
+                        }
                     }
                 }
 
-                // Avoid marching the General itself empty if an enemy is right next to it
-                const isLeavingGeneralVulnerable = (largestTile === genIdx && urgentThreatTile !== -1);
-                if (!isLeavingGeneralVulnerable) {
-                    const stepAttack = getNextStepTowards(largestTile, targetEnemy);
+                if (targetEnemy !== -1) {
+                    const stepAttack = getNextStepTowards(attackerTile, targetEnemy);
                     if (stepAttack !== -1) {
-                        const useHalf = (largestTile === genIdx && largestArmy >= 24);
-                        return { from: largestTile, to: stepAttack, isHalf: useHalf };
+                        return { from: attackerTile, to: stepAttack, isHalf: splitWhenLeavingGen };
                     }
                 }
             }
 
             // 5. RAPID BORDER EXPANSION INTO NEUTRAL LAND
-            for (const t of myTiles.slice(0, 8)) {
+            for (const t of myTiles.slice(0, 10)) {
+                if (t === genIdx && genArmy <= minSafeGarrison) continue;
                 const nbs = getPassableNeighbors(t);
                 const emptyNbs = nbs.filter(nb => game.owner[nb] === -1 && game.terrain[nb] === TILE_EMPTY);
                 if (emptyNbs.length > 0) {
                     const target = emptyNbs[Math.floor(Math.random() * emptyNbs.length)];
-                    const useHalf = (t === genIdx && game.army[t] >= 18 && Math.random() < 0.4);
+                    const useHalf = (t === genIdx);
                     return { from: t, to: target, isHalf: useHalf };
                 }
             }
 
-            // 6. GATHER INTERIOR TROOPS TOWARDS NEAREST UNEXPLORED / NON-ALLIED TILE
-            const nbs = getPassableNeighbors(largestTile);
+            // 6. GATHER INTERIOR TROOPS TOWARDS FRONTIER
+            const mover = (largestTile === genIdx && !canUseGeneralForOffense) ? bestFieldTile : largestTile;
+            if (mover === genIdx && genArmy <= minSafeGarrison) return null;
+
+            const nbs = getPassableNeighbors(mover);
             if (nbs.length === 0) return null;
 
-            const validNbs = nbs.filter(n => n !== mem.lastFrom && (game.terrain[n] !== TILE_CITY || arePlayersAllied(botIdx, game.owner[n]) || largestArmy > game.army[n] + 3));
+            const validNbs = nbs.filter(n => n !== mem.lastFrom && (game.terrain[n] !== TILE_CITY || arePlayersAllied(botIdx, game.owner[n]) || game.army[mover] > game.army[n] + 4));
             const pool = validNbs.length > 0 ? validNbs : nbs;
             const chosen = pool[Math.floor(Math.random() * pool.length)];
-            mem.lastFrom = largestTile;
+            mem.lastFrom = mover;
 
-            return { from: largestTile, to: chosen, isHalf: false };
+            return { from: mover, to: chosen, isHalf: mover === genIdx };
         }
 
         function getPassableNeighbors(idx) {
@@ -2192,7 +2265,8 @@
 
             // In Pitch-Black Blind Fog mode, use a fixed tactical zoom centered strictly on General
             // so the zoom level or position never hints at map dimensions or corner proximity
-            const fitSize = config.visionMode === 'blind'
+            const activeVMode = replayState.active ? 'full' : game.visionMode;
+            const fitSize = activeVMode === 'blind'
                 ? 42
                 : Math.min(46, Math.max(18, Math.floor(Math.min(canvas.width, canvas.height) / Math.min(28, Math.max(game.width, game.height)))));
             camera.tileSize = fitSize;
@@ -2207,40 +2281,13 @@
             return gy * game.width + gx;
         }
 
-        window.cycleVisionModeInGame = function() {
-            const order = ['standard', 'blind', 'full'];
-            const nextIdx = (order.indexOf(config.visionMode) + 1) % order.length;
-            config.visionMode = order[nextIdx];
-            updateFogButtonUI();
-            const modeNames = {
-                standard: '標準視野 (顯示地形陰影)',
-                blind: '真・全黑迷霧 (隱藏全圖與邊界)',
-                full: '全圖透視視野'
-            };
-            showToast(`已切換為：${modeNames[config.visionMode]}`);
-        };
-
-        function updateFogButtonUI() {
-            const btn = document.getElementById('btnToggleFog');
-            if (!btn) return;
-            if (config.visionMode === 'standard') {
-                btn.innerHTML = `<i class="fa-solid fa-eye-low-vision mr-1"></i>標準視野`;
-                btn.className = "glass-panel px-3 py-1.5 rounded-xl text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 font-semibold btn-tactical";
-            } else if (config.visionMode === 'blind') {
-                btn.innerHTML = `<i class="fa-solid fa-moon mr-1"></i>全黑迷霧`;
-                btn.className = "glass-panel px-3 py-1.5 rounded-xl text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 font-semibold btn-tactical";
-            } else {
-                btn.innerHTML = `<i class="fa-solid fa-eye mr-1"></i>全圖透視`;
-                btn.className = "glass-panel px-3 py-1.5 rounded-xl text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 font-semibold btn-tactical";
-            }
-        }
-
         // ============================================================================
         // HIGH-PERFORMANCE 60FPS CANVAS RENDERER (SUPPORTS 100x100 MAPS)
         // ============================================================================
         function computeVisibilityMask() {
             const total = game.width * game.height;
-            if (config.visionMode === 'full') {
+            const activeVMode = replayState.active ? 'full' : game.visionMode;
+            if (activeVMode === 'full') {
                 return new Uint8Array(total).fill(1);
             }
             const vis = new Uint8Array(total);
@@ -2267,7 +2314,8 @@
 
         function renderGameLoop() {
             // Pitch-black background (#000000) in 'blind' mode so unseen tiles blend seamlessly into the void!
-            const isBlindMode = (config.visionMode === 'blind');
+            const activeVMode = replayState.active ? 'full' : game.visionMode;
+            const isBlindMode = (activeVMode === 'blind');
             ctx.fillStyle = isBlindMode ? "#000000" : "#060911";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -2379,7 +2427,7 @@
                 }
 
                 // 4. Draw Bright FOV Boundary Contour around the player's visible area in Standard Mode
-                if (config.visionMode === 'standard' && ts >= 14) {
+                if (activeVMode === 'standard' && ts >= 14) {
                     ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
                     ctx.lineWidth = 2;
                     ctx.beginPath();
@@ -2667,6 +2715,13 @@
                 replayCityBadge.innerHTML = `<i class="fa-solid fa-city mr-1"></i>全圖城市總數: ${mapTotalCities} (已佔領 ${mapOwnedCities} / 中立 ${neutralCities})`;
             }
 
+            // REQUIREMENT 4: Only show everyone's City count when watching a Replay!
+            const showCitiesCol = replayState.active;
+            const lbHeaderCities = document.getElementById('lbHeaderCities');
+            if (lbHeaderCities) {
+                lbHeaderCities.classList.toggle('hidden', !showCitiesCol);
+            }
+
             stats.sort((a, b) => b.totalArmy - a.totalArmy);
 
             const lbContainer = document.getElementById('leaderboardRows');
@@ -2678,6 +2733,7 @@
                     ? `<span class="px-1 py-0.2 rounded text-[9px] font-mono ${isAllied ? 'bg-sky-500/30 text-sky-300 border border-sky-500/40' : 'bg-slate-800 text-slate-400'}">${ ['A','B','C','D'][s.team % 4] }隊</span>`
                     : '';
                 const opacityClass = s.alive ? '' : 'opacity-45 line-through';
+                const cityCellHtml = showCitiesCol ? `<span class="w-9 text-right text-sky-400">${s.totalCities}</span>` : '';
                 return `
                     <div class="flex items-center justify-between py-1 px-2 rounded-lg ${isMe ? 'bg-slate-800/90 border border-slate-700' : ''} ${opacityClass}">
                         <div class="flex items-center gap-1.5 truncate pr-2">
@@ -2688,7 +2744,7 @@
                         <div class="flex items-center gap-2.5 mono font-bold">
                             <span class="w-12 text-right text-amber-300">${s.totalArmy}</span>
                             <span class="w-9 text-right text-slate-300">${s.totalLand}</span>
-                            <span class="w-9 text-right text-sky-400">${s.totalCities}</span>
+                            ${cityCellHtml}
                         </div>
                     </div>
                 `;
@@ -2764,11 +2820,7 @@
             game.selectedTile = -1;
             game.moveQueue = [];
 
-            // Automatically reveal full map in Replay Mode (can still toggle Fog if desired)
-            config.visionMode = 'full';
-            updateFogButtonUI();
-
-            // UI Setup
+            // UI Setup (Note: replayState.active automatically renders full map without overwriting config.visionMode!)
             document.getElementById('lobbyScreen').classList.add('hidden');
             document.getElementById('gameOverModal').classList.add('hidden');
             document.getElementById('gameHud').classList.remove('hidden');
@@ -2778,7 +2830,7 @@
             document.getElementById('btnEnterReplayNow').classList.add('hidden');
             document.getElementById('replayControllerBar').classList.remove('hidden');
 
-            document.getElementById('modeIndicatorBadge').textContent = '戰役回放 REPLAY';
+            document.getElementById('modeIndicatorBadge').textContent = '戰役回放';
             document.getElementById('modeIndicatorBadge').className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30";
 
             const scrubber = document.getElementById('replayScrubber');
@@ -2787,7 +2839,7 @@
 
             applyReplayFrame(0);
             centerOnGeneral();
-            showToast("已進入戰役回放模式，預設開啟全圖透視視野");
+            showToast("已進入戰役回放模式");
         }
 
         function applyReplayFrame(frameIdx) {
@@ -3506,7 +3558,7 @@
 
             const humanCount = pList.filter(p => !p.isBot).length;
             const aiCount = pList.filter(p => p.isBot).length;
-            const modeTag = data.teamMode ? '組隊同盟 (點擊隊伍標籤可換隊)' : '個人混戰 (FFA)';
+            const modeTag = data.teamMode ? '組隊同盟 (點擊隊伍標籤可換隊)' : '個人混戰';
             document.getElementById('roomSlotCounterText').textContent = `參戰席位 (${pList.length} / 8) — ${modeTag}`;
             document.getElementById('roomSpecsText').textContent = `${data.width}x${data.height} | 山脈 ${data.mountainDensity}% | 城市 ${data.cityDensity}% | ${data.speed}x`;
 
@@ -3671,7 +3723,8 @@
                 army: Array.from(game.army),
                 players: game.players,
                 allowRelocate: game.allowRelocate,
-                teamMode: game.teamMode
+                teamMode: game.teamMode,
+                visionMode: game.visionMode
             };
 
             if (netMode === 'p2p' || !db || !fbOps) {
