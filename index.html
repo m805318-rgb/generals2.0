@@ -697,8 +697,12 @@
         let activeRoomCode = null;
         let isRoomHost = false;
         let activeRoomRawData = null;
-        let pendingOnlineMoves = {};
+        let pendingOnlineQueues = {};
         let clientMoveSeq = 0;
+
+        // Drift-compensated turn loop state
+        let turnLoopIntervalMs = 500;
+        let nextTurnExpectedTime = 0;
 
         // ============================================================================
         // TOAST & UI HELPERS
@@ -1129,7 +1133,7 @@
         }
 
         function initMatchSession(mode, matchCfg, players, mapData, myIndex) {
-            if (game.turnTimer) clearInterval(game.turnTimer);
+            if (game.turnTimer) clearTimeout(game.turnTimer);
             if (replayState.timer) clearInterval(replayState.timer);
             replayState.active = false;
             replayState.playing = false;
@@ -1156,7 +1160,7 @@
             game.moveQueue = [];
             game.botMemory = {};
             game.replayHistory = [];
-            pendingOnlineMoves = {};
+            pendingOnlineQueues = {};
 
             // UI transitions
             document.getElementById('lobbyModal').classList.add('hidden');
@@ -1180,11 +1184,33 @@
             updateHudAndLeaderboard();
             centerCameraOnMyGeneral();
 
-            // Start game loop if singleplayer or online host
+            // Start drift-compensated turn loop if singleplayer or online host
             if (mode === 'single' || mode === 'online_host') {
-                const intervalMs = Math.max(90, Math.round(500 / (matchCfg.speed || 1)));
-                game.turnTimer = setInterval(advanceGameTurn, intervalMs);
+                turnLoopIntervalMs = Math.max(90, Math.round(500 / (matchCfg.speed || 1)));
+                nextTurnExpectedTime = performance.now() + turnLoopIntervalMs;
+                scheduleNextTurnTick();
             }
+        }
+
+        function scheduleNextTurnTick() {
+            if (game.turnTimer) clearTimeout(game.turnTimer);
+            if (!game.isRunning) return;
+
+            const now = performance.now();
+            const delay = Math.max(8, nextTurnExpectedTime - now);
+
+            game.turnTimer = setTimeout(() => {
+                if (!game.isRunning) return;
+                const tickNow = performance.now();
+                // Prevent spiral of death if tab was backgrounded, otherwise keep exact cadence
+                if (tickNow - nextTurnExpectedTime > turnLoopIntervalMs * 2.5) {
+                    nextTurnExpectedTime = tickNow + turnLoopIntervalMs;
+                } else {
+                    nextTurnExpectedTime += turnLoopIntervalMs;
+                }
+                advanceGameTurn();
+                scheduleNextTurnTick();
+            }, delay);
         }
 
         function updateHudAndLeaderboard() {
@@ -1285,11 +1311,21 @@
                 } else if (pl.isBot) {
                     action = computeSmartBotMove(pIdx);
                 } else if (game.mode === 'online_host') {
-                    const remoteCmd = pendingOnlineMoves[pl.uid];
-                    if (remoteCmd) {
-                        action = remoteCmd;
-                        executedMeta[pl.uid] = remoteCmd.seq || 0;
-                        delete pendingOnlineMoves[pl.uid];
+                    // Non-host human player: pop next valid step from their synced queue without waiting for network RTT!
+                    const clientQ = pendingOnlineQueues[pl.uid];
+                    if (Array.isArray(clientQ) && clientQ.length > 0) {
+                        while (clientQ.length > 0) {
+                            const cand = clientQ.shift();
+                            executedMeta[pl.uid] = Math.max(executedMeta[pl.uid] || 0, cand.seq || 0);
+                            if (cand.type === 'relocate') {
+                                action = cand;
+                                break;
+                            }
+                            if (isValidMoveStep(pIdx, cand.from, cand.to)) {
+                                action = cand;
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -1511,7 +1547,7 @@
 
             if (isOver) {
                 game.isRunning = false;
-                if (game.turnTimer) clearInterval(game.turnTimer);
+                if (game.turnTimer) clearTimeout(game.turnTimer);
                 saveCurrentMatchReplay(winnerTitle);
 
                 document.getElementById('goTitleText').textContent = winnerTitle;
@@ -2004,6 +2040,9 @@
                 return;
             }
             game.isPaused = !game.isPaused;
+            if (!game.isPaused) {
+                nextTurnExpectedTime = performance.now() + turnLoopIntervalMs;
+            }
             const btn = document.getElementById('btnPauseGame');
             if (btn) {
                 btn.innerHTML = game.isPaused
@@ -2013,7 +2052,7 @@
         }
 
         function exitMatchToLobby() {
-            if (game.turnTimer) clearInterval(game.turnTimer);
+            if (game.turnTimer) clearTimeout(game.turnTimer);
             if (replayState.timer) clearInterval(replayState.timer);
             game.isRunning = false;
             replayState.active = false;
@@ -2423,15 +2462,22 @@
         function recordReplaySnapshot() {
             game.replayHistory.push({
                 turn: game.turn,
-                terrain: Array.from(game.terrain),
-                owner: Array.from(game.owner),
-                army: Array.from(game.army),
+                terrain: new Uint8Array(game.terrain),
+                owner: new Int8Array(game.owner),
+                army: new Int32Array(game.army),
                 playersAlive: game.players.map(p => p.alive)
             });
         }
 
         function saveCurrentMatchReplay(title) {
             if (game.replayHistory.length === 0) return;
+            const serializedFrames = game.replayHistory.map(fr => ({
+                turn: fr.turn,
+                terrain: Array.from(fr.terrain),
+                owner: Array.from(fr.owner),
+                army: Array.from(fr.army),
+                playersAlive: fr.playersAlive
+            }));
             const record = {
                 id: 'rep_' + Date.now(),
                 title: title || `Turn ${game.turn} 戰役`,
@@ -2442,7 +2488,7 @@
                 portalTarget: Array.from(game.portalTarget),
                 portalPairId: Array.from(game.portalPairId),
                 players: JSON.parse(JSON.stringify(game.players)),
-                frames: game.replayHistory
+                frames: serializedFrames
             };
             game.savedReplays.unshift(record);
             if (game.savedReplays.length > 15) game.savedReplays.pop();
@@ -2806,11 +2852,11 @@
                     broadcastRoomLobbyState();
                     renderRoomSlotsUI();
                 }
-            } else if (data.type === 'player_move') {
-                if (data.move) {
-                    pendingOnlineMoves[data.uid] = data.move;
+            } else if (data.type === 'player_queue_sync') {
+                if (Array.isArray(data.queue)) {
+                    pendingOnlineQueues[data.uid] = data.queue.slice(0, 150);
                 } else {
-                    delete pendingOnlineMoves[data.uid];
+                    pendingOnlineQueues[data.uid] = [];
                 }
             }
         }
@@ -2832,17 +2878,11 @@
                 game.army = new Int32Array(data.army);
                 if (data.players) game.players = data.players;
 
-                // Pop executed move from client local queue so arrows disappear cleanly!
-                const execSeq = data.executedMeta ? data.executedMeta[localPlayerUid] : 0;
-                if (execSeq && game.moveQueue.length > 0 && game.moveQueue[0].seq <= execSeq) {
-                    game.moveQueue.shift();
-                }
-                while (game.moveQueue.length > 0) {
-                    const front = game.moveQueue[0];
-                    if (front.type === 'move' && !isValidMoveStep(game.myPlayerIndex, front.from, front.to)) {
+                // Remove all moves up to the sequence number already executed by host
+                const execSeq = (data.executedMeta && data.executedMeta[localPlayerUid]) ? data.executedMeta[localPlayerUid] : 0;
+                if (execSeq > 0) {
+                    while (game.moveQueue.length > 0 && game.moveQueue[0].seq <= execSeq) {
                         game.moveQueue.shift();
-                    } else {
-                        break;
                     }
                 }
 
@@ -2851,17 +2891,15 @@
                 recordReplaySnapshot();
                 updateHudAndLeaderboard();
                 checkVictoryCondition();
-                syncNextMoveToOnlineHostIfNeeded();
             }
         }
 
         function syncNextMoveToOnlineHostIfNeeded() {
             if (game.mode !== 'online_client' || !clientToHostConn || !clientToHostConn.open) return;
-            const nextCmd = game.moveQueue.length > 0 ? game.moveQueue[0] : null;
             clientToHostConn.send({
-                type: 'player_move',
+                type: 'player_queue_sync',
                 uid: localPlayerUid,
-                move: nextCmd
+                queue: game.moveQueue
             });
         }
 
