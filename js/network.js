@@ -4,21 +4,46 @@
 // ONLINE MULTIPLAYER ENGINE (ZERO-CONFIG WEBRTC PEERJS FOR GITHUB PAGES)
 // ============================================================================
 function getPeerRoomId(code) {
-    return `generals-io-tw-terrain-rates-v15-${code.toUpperCase()}`;
+    return `generals-io-tw-lava-v20-${code.toUpperCase()}`;
 }
 
+let peerSetupToken=0,peerSetupTimer=null,peerSetupBusy=false;
+function setPeerSetupBusy(busy,message){
+ if(busy)document.getElementById('connectionErrorPanel')?.remove();
+ peerSetupBusy=busy;
+ document.querySelectorAll('[onclick="createOnlineRoom()"],[onclick="joinOnlineRoom()"],#btnJoinRunning').forEach(b=>b.disabled=busy);
+ const badge=document.getElementById('netStatusBadge');if(badge)badge.textContent=message||(busy?'連線中…':'可建立／加入房間');
+}
+function peerErrorMessage(error){
+ const messages={'unavailable-id':'房號已被使用，請重新建立房間。','network':'無法連上房間服務，請檢查網路或稍後重試。','socket-error':'房間服務連線失敗，請檢查網路或防火牆。','socket-closed':'房間服務連線已中斷，請稍後重試。','server-error':'房間服務暫時無法回應，請稍後重試。','browser-incompatible':'此瀏覽器不支援 WebRTC，請使用最新版 Chrome、Edge 或 Firefox。','timeout':'房間服務 15 秒未回應，請檢查網路後重試。','invalid-id':'房號格式錯誤，請重新建立房間。','peer-unavailable':'找不到房間，請確認房號、房主仍在線，且雙方使用相同版本。','ssl-unavailable':'目前環境無法建立安全連線。'};
+ return (messages[error?.type]||'連線失敗，請稍後重試。')+' ['+(error?.type||'unknown')+']';
+}
 function createOnlineRoom() {
-    if (typeof Peer === 'undefined') {
-        showToast('P2P 連線元件載入中，請稍候重試', 'rose');
-        return;
-    }
-    const code = String(Math.floor(1000 + Math.random() * 9000));
-    const peerId = getPeerRoomId(code);
-
-    if (peerInstance) peerInstance.destroy();
-    peerInstance = new Peer(peerId);
-
-    peerInstance.on('open', () => {
+ if(peerSetupBusy)return;
+ if(typeof Peer==='undefined'){showConnectionError({type:'library-unavailable',message:'連線元件下載失敗，請確認網路後重新整理頁面。'},'建立房間');return;}
+ const token=++peerSetupToken,usedCodes=new Set();
+ setPeerSetupBusy(true,'正在建立房間…');
+ if(peerInstance)peerInstance.destroy();
+ function attempt(number){
+  if(token!==peerSetupToken)return;
+  const random=new Uint32Array(1);crypto.getRandomValues(random);let code=String(1000+random[0]%9000);
+  while(usedCodes.has(code))code=String(1000+(Number(code)-999)%9000);usedCodes.add(code);
+  let peer,opened=false,failed=false;
+  const current=()=>token===peerSetupToken&&peerInstance===peer;
+  function fail(error){
+   if(!current()||failed)return;
+   if(opened){showConnectionError(error,'建立房間');return;}
+   failed=true;clearTimeout(peerSetupTimer);peer.destroy();
+   if((error.type==='unavailable-id'&&number<5)||(['network','socket-error','server-error','socket-closed'].includes(error.type)&&number<2)){
+    setPeerSetupBusy(true,error.type==='unavailable-id'?'房號衝突，正在換號…':'連線失敗，正在重試…');
+    peerSetupTimer=setTimeout(()=>attempt(number+1),error.type==='unavailable-id'?0:700);return;
+   }
+   peerInstance=null;setPeerSetupBusy(false,'建立失敗，可重試');showToast(peerErrorMessage(error),'rose');
+  }
+  try{peer=new Peer(getPeerRoomId(code));peerInstance=peer;}catch(error){peerInstance=null;setPeerSetupBusy(false,'建立失敗，可重試');showToast(peerErrorMessage(error),'rose');return;}
+  peerSetupTimer=setTimeout(()=>fail({type:'timeout'}),15000);
+  peer.on('open',()=>{
+   if(!current()||failed)return;opened=true;clearTimeout(peerSetupTimer);setPeerSetupBusy(false,'房間已建立');
         activeRoomCode = code;
         isRoomHost = true;
         hostClientConns = {};
@@ -51,11 +76,13 @@ function createOnlineRoom() {
 
         enterRoomLobbyUI();
         showToast(`已建立房間 #${code}！可複製連結邀請朋友`, 'sky');
-    });
 
-    peerInstance.on('connection', (conn) => {
+  });
+    peer.on('connection', (conn) => {
+        if(token!==peerSetupToken||peerInstance!==peer){conn.close();return;}
         conn.on('data', (data) => handleHostReceivedPeerData(conn, data));
         conn.on('close', () => {
+            if(token!==peerSetupToken||peerInstance!==peer)return;
             if (conn.peerUid) {
                 delete hostClientConns[conn.peerUid];
                 if (activeRoomRawData) {
@@ -67,35 +94,49 @@ function createOnlineRoom() {
         });
     });
 
-    peerInstance.on('error', () => {
-        showToast('房間建立失敗或房號衝突，請重試', 'rose');
-    });
+
+  peer.on('error',fail);
+  peer.on('disconnected',()=>{if(current()&&opened){const badge=document.getElementById('netStatusBadge');if(badge)badge.textContent='房間服務暫時斷線';showToast('房間服務暫時斷線；已連線玩家可繼續，新的玩家暫時無法加入。','amber');}});
+ }
+ attempt(0);
 }
 
 function joinOnlineRoom() {
+    if(peerSetupBusy)return;
     const rawCode = (document.getElementById('inpJoinRoomCode').value || '').trim().toUpperCase();
-    if (!rawCode) {
+    if (!/^\d{4}$/.test(rawCode)) {
         showToast('請輸入 4 位數房間號碼', 'rose');
         return;
     }
     if (typeof Peer === 'undefined') {
-        showToast('P2P 連線元件未就緒', 'rose');
+        showConnectionError({type:'library-unavailable',message:'連線元件下載失敗，請確認網路後重新整理頁面。'},'加入房間');
         return;
     }
 
-    if (peerInstance) peerInstance.destroy();
-    peerInstance = new Peer();
+    const token=++peerSetupToken;
+    setPeerSetupBusy(true,'正在加入房間…');
+    if(peerInstance)peerInstance.destroy();
+    let peer;try{peer=new Peer();peerInstance=peer;}catch(error){setPeerSetupBusy(false);showToast(peerErrorMessage(error),'rose');return;}
+    const current=()=>token===peerSetupToken&&peerInstance===peer;
+    const failed=error=>{if(!current())return;showToast(peerErrorMessage(error),'rose');leaveOnlineRoom();};
+    peerSetupTimer=setTimeout(()=>failed({type:'timeout'}),15000);
+    peer.on('error',failed);
 
-    peerInstance.on('open', () => {
-        const conn = peerInstance.connect(getPeerRoomId(rawCode), { reliable: true });
+    peer.on('open', () => {
+        if(!current())return;
+        const conn = peer.connect(getPeerRoomId(rawCode), { reliable: true });
         clientToHostConn = conn;
 
+        conn.on('error',failed);
         conn.on('open', () => {
+            if(!current())return;clearTimeout(peerSetupTimer);setPeerSetupBusy(true,'已連上房主，等待房間資料…');
+            peerSetupTimer=setTimeout(()=>failed({type:'handshake-timeout'}),10000);
             activeRoomCode = rawCode;
             isRoomHost = false;
             const myName = (document.getElementById('inpPlayerName').value || 'Commander').trim();
             conn.send({
                 type: 'join_request',
+                allowSpectate: true,
                 uid: localPlayerUid,
                 name: myName,
                 colorIdx: config.myColorIdx,
@@ -103,8 +144,9 @@ function joinOnlineRoom() {
             });
         });
 
-        conn.on('data', (data) => handleClientReceivedPeerData(data));
+        conn.on('data', (data) => {if(current())handleClientReceivedPeerData(data);});
         conn.on('close', () => {
+            if(!current())return;
             showToast('與房主的連線已中斷', 'rose');
             leaveOnlineRoom();
         });
@@ -119,6 +161,12 @@ function handleHostReceivedPeerData(conn, data) {
         conn.send(fullTurnPacket(frame,game.executedThrough||{}));return;
     }
 
+    if(data.type==='surrender_request'){
+        if(conn.peerUid!==data.uid)return;
+        const idx=game.players.findIndex(p=>p.uid===conn.peerUid);
+        if(game.isRunning&&idx>=0&&game.players[idx].alive)pendingSurrenders.add(idx);
+        return;
+    }
     if (data.type === 'join_request') {
         acceptRoomJoin(conn,data);
     } else if (data.type === 'profile_update') {
@@ -140,6 +188,7 @@ function handleHostReceivedPeerData(conn, data) {
         const playerIdx=game.players.findIndex(p=>p.uid===conn.peerUid);
         if(playerIdx<0||!game.players[playerIdx].alive)return;
         if(playerIdx>=0&&Number.isInteger(data.focus)&&game.owner[data.focus]===playerIdx)game.extra.focus[playerIdx]=data.focus;
+        if(Number.isInteger(data.selection)&&data.selection>=-1&&data.selection<game.terrain.length){game.extra.viewSelection=game.extra.viewSelection||{};game.extra.viewSelection[playerIdx]=data.selection;}
         if (Array.isArray(data.queue)) {
             pendingOnlineQueues[data.uid] = data.queue.filter(a=>a&&Number.isInteger(a.seq)&&a.seq>(game.executedThrough?.[data.uid]||0)).slice(0,150);
         } else {
@@ -151,28 +200,36 @@ function handleHostReceivedPeerData(conn, data) {
 function handleClientReceivedPeerData(data) {
     if (!data) return;
     if (handleLatencyPacket(clientToHostConn, data)) return;
-    if(data.type==='join_rejected'){showToast(data.message,'rose');leaveOnlineRoom();return;}
+    if(data.type==='join_rejected'){showConnectionError({type:'join-rejected',message:data.message},'加入房間');leaveOnlineRoom();return;}
     if (data.type === 'action_rejected') { showToast(data.message, 'rose'); return; }
     if(data.type==='turn_sync'){
         if(data.delta){
             if(!game.networkFrame||data.baseTurn!==game.networkFrame.turn){if(clientToHostConn?.open)clientToHostConn.send({type:'state_resync'});return;}
             data=expandTurnPacket(data,game.networkFrame);
         }
+        const n=game.width*game.height;
+        if(!data.players||!data.terrain||data.terrain.length!==n||data.owner?.length!==n||data.army?.length!==n){
+            if(clientToHostConn?.open&&performance.now()-(game.resyncRequestedAt||-10000)>1000){game.resyncRequestedAt=performance.now();clientToHostConn.send({type:'state_resync'});}
+            return;
+        }
         game.networkFrame=frameFromPacket(data);
     }
     if (data.type === 'room_lobby_sync') {
+        clearTimeout(peerSetupTimer);setPeerSetupBusy(false,'已加入房間');
         activeRoomRawData = data.roomData;
         enterRoomLobbyUI();
         applyRoomConfigToLobbyUI(activeRoomRawData.config);
         renderRoomSlotsUI();
     } else if (data.type === 'match_start') {
+        clearTimeout(peerSetupTimer);setPeerSetupBusy(false,'已加入對局');
         const myIdx = data.players.findIndex(p => p.uid === localPlayerUid);
+        if(myIdx<0)showToast('已以觀戰者身分加入對局','sky');
         initMatchSession('online_client', data.config, data.players, data.mapData, myIdx);
         if(data.turn){game.turn=data.turn;game.replayHistory=[];recordReplaySnapshot();updateHudAndLeaderboard();}
         game.networkFrame=captureFrame();
     } else if (data.type === 'turn_sync') {
         if(replayState.active){
-            game.livePacket=data;game.replayHistory.push(frameFromPacket(data));
+            game.livePacket=data;appendReplayFrame(game.networkFrame);
             const ack=data.executedMeta?.[localPlayerUid]||0;
             game.moveQueue=game.moveQueue.filter(a=>a.seq>ack);return;
         }
@@ -195,7 +252,7 @@ function handleClientReceivedPeerData(data) {
 
         updateQueueUI();
         updateRelocateButtonUI();
-        recordReplaySnapshot();
+        appendReplayFrame(game.networkFrame);
         updateHudAndLeaderboard();
         checkVictoryCondition();
     }
@@ -203,11 +260,13 @@ function handleClientReceivedPeerData(data) {
 
 function syncNextMoveToOnlineHostIfNeeded() {
     if(game.isSpectator)return;
+    if(game.extra&&game.myPlayerIndex>=0){game.extra.viewSelection=game.extra.viewSelection||{};game.extra.viewSelection[game.myPlayerIndex]=game.selectedTile;}
     if (game.mode !== 'online_client' || !clientToHostConn || !clientToHostConn.open) return;
     clientToHostConn.send({
         type: 'player_queue_sync',
         uid: localPlayerUid,
         focus: mistFocus(game.myPlayerIndex),
+        selection: game.selectedTile,
         queue: game.moveQueue
     });
 }
@@ -230,6 +289,7 @@ function enterRoomLobbyUI() {
 }
 
 function leaveOnlineRoom() {
+    peerSetupToken++;clearTimeout(peerSetupTimer);setPeerSetupBusy(false);
     resetLatency();
     if (peerInstance) {
         peerInstance.destroy();
@@ -512,6 +572,21 @@ function renderLatency() {
 }
 
 
+
+
+
+
+
+
+let lastConnectionError=null;
+function showConnectionError(error,stage){
+ const type=error?.type||'unknown';
+ const advice={network:'請確認網路可用，暫停 VPN／代理後重試；若多人同時失敗，可能是房間服務暫時異常。','socket-error':'房間服務的 WebSocket 連線失敗；可換網路或檢查防火牆是否阻擋。',timeout:'房間服務連線逾時，可換網路或稍後重試。','handshake-timeout':'已連上房主，但未收到房間資料。請確認房主網頁未休眠，雙方都使用同一新版。','peer-unavailable':'請確認四位房號正確、房主尚未關閉網頁，且雙方使用同一新版。','browser-incompatible':'請使用支援 WebRTC 的 Chrome、Edge 或 Firefox。','join-rejected':error?.message||'房主拒絕加入，請重新確認加入身分。'};
+ const message=advice[type]||(type==='library-unavailable'?error.message:peerErrorMessage(error));
+ lastConnectionError={stage,type,message,detail:String(error?.message||''),version:'2.10.0',time:new Date().toISOString(),online:navigator.onLine,protocol:location.protocol};
+ let panel=document.getElementById('connectionErrorPanel');if(!panel){panel=document.createElement('div');panel.id='connectionErrorPanel';panel.setAttribute('role','alert');panel.style.cssText='padding:12px;border:1px solid #be405d;border-radius:10px;background:#301627;color:#fecdd3;font-size:12px;line-height:1.6';document.getElementById('onlineEntrySubView').append(panel);}
+ panel.replaceChildren();const title=document.createElement('strong');title.textContent=stage+'失敗 ['+type+']';const text=document.createElement('p');text.textContent=message;const copy=document.createElement('button');copy.className='expansion-btn';copy.textContent='複製錯誤資訊';copy.onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(lastConnectionError,null,2));showToast('錯誤資訊已複製','sky');}catch{const detail=document.createElement('textarea');detail.value=JSON.stringify(lastConnectionError,null,2);detail.style.width='100%';panel.append(detail);detail.select();}};panel.append(title,text,copy);showToast(stage+'失敗 ['+type+']：'+message,'rose');
+}
 
 
 

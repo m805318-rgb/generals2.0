@@ -57,6 +57,7 @@
     <!-- ==================== TOP-RIGHT LEADERBOARD & MATCH CONTROLS ==================== -->
     <div id="hudTopRight" class="hidden fixed top-3 right-3 z-20 flex flex-col items-end gap-2 pointer-events-auto">
         <div class="flex items-center gap-2">
+            <button id="btnCameraLock" onclick="toggleCameraLock()" class="expansion-btn" aria-pressed="false">鎖定視角：關</button>
             <button onclick="centerCameraOnMyGeneral()" class="glass-panel hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-lg" title="鏡頭回到主堡 (快捷鍵 H)">
                 <i class="fa-solid fa-crown text-amber-400"></i> 主堡 (H)
             </button>
@@ -99,7 +100,8 @@
         </div>
 
         <!-- Action Buttons Row -->
-        <div class="glass-panel px-3 py-2 rounded-2xl shadow-2xl flex flex-wrap items-center justify-center gap-2">
+        <div id="actionButtonsRow" class="glass-panel px-3 py-2 rounded-2xl shadow-2xl flex items-center gap-2">
+            <button id="btnSurrender" onclick="requestSurrender()" class="hidden expansion-btn" style="color:#fda4af">投降</button>
             <button id="btnSplit50" onclick="toggleSplit50Mode()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 border border-slate-700">
                 <i class="fa-solid fa-scissors text-amber-400"></i>
                 <span>50% 分兵 (Z / 點兩下)</span>
@@ -111,16 +113,8 @@
                 <span id="lblRelocateBtn">遷都 (M: 剩 1 次)</span>
             </button>
 
-            <button onclick="queueRecruit()" class="expansion-btn">招募 (B)</button>
+            <button id="btnRecruit" onclick="queueRecruit()" class="expansion-btn">招募 (B)</button>
             <button id="bombButton" onclick="toggleBombMode()" class="expansion-btn">工兵爆破 (X)</button>
-            <button onclick="popLastQueuedMove()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition flex items-center gap-1 border border-slate-700" title="撤銷最後一步 (E)">
-                <i class="fa-solid fa-rotate-left"></i> 撤銷 (E)
-            </button>
-
-            <button onclick="clearMoveQueue()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-rose-950/80 text-slate-200 hover:text-rose-300 text-xs font-semibold transition flex items-center gap-1 border border-slate-700" title="清空所有預排行軍 (Q)">
-                <i class="fa-solid fa-trash-can"></i> 清空佇列 (Q)
-                <span id="badgeQueueCount" class="ml-1 px-1.5 py-0.5 rounded-full bg-slate-900 text-emerald-400 mono text-[10px]">0</span>
-            </button>
         </div>
     </div>
 
@@ -231,6 +225,7 @@
                         <span id="lobbyLatency" class="text-sky-300 mono text-xs">尚未連線</span>
                         <!-- Sub-view A: Join or Create Room -->
                         <div id="onlineEntrySubView" class="flex flex-col gap-3">
+                            <button id="btnJoinRunning" onclick="joinRunningRoom()" class="expansion-btn">輸入房號，觀戰進行中的對局</button>
                             <div class="flex items-center justify-between text-xs">
                                 <span class="text-slate-300 font-bold"><i class="fa-solid fa-satellite-dish text-sky-400 mr-1"></i> 全球 P2P 房間連線</span>
                                 <span id="netStatusBadge" class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">免設定雲端就緒</span>
@@ -328,7 +323,7 @@
                         </div>
                         <div class="flex items-start gap-2">
                             <span class="text-amber-400 font-bold">•</span>
-                            <span><strong class="text-white">傳送門 & 岩漿 (選配)：</strong>傳送門成對出現，部隊沿<span class="text-fuchsia-400 font-bold">同方向</span>從出口穿出。岩漿不能停留，穿過每格扣除設定的 n 兵力；出口受阻則無法進入。</span>
+                            <span><strong class="text-white">傳送門 & 岩漿 (選配)：</strong>傳送門成對出現，部隊沿<span class="text-fuchsia-400 font-bold">同方向</span>從出口穿出。岩漿可佔領；進入扣除 n 兵，駐軍每回合再扣 n 兵，歸零後變回中立。</span>
                         </div>
                     </div>
                 </div>
@@ -406,12 +401,12 @@
                             <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
                                 <div class="flex justify-between text-xs mb-1.5">
                                     <span class="font-semibold text-slate-300"><i class="fa-solid fa-city text-slate-400 mr-1"></i> 城市密度 (每回合+1兵)</span>
-                                    <span id="lblCityDensity" class="mono font-bold text-sky-400">4.0%</span>
+                                    <span id="lblCityDensity" class="mono font-bold text-sky-400">2.0%</span>
                                 </div>
-                                <input id="inpCityDensity" type="range" min="0" max="15" step="0.5" value="4" oninput="updateConfigLabels()" class="w-full cursor-pointer">
+                                <input id="inpCityDensity" type="range" min="0" max="15" step="0.5" value="2" oninput="updateConfigLabels()" class="w-full cursor-pointer">
                                 <div class="flex justify-between text-[10px] text-slate-500 mt-1">
                                     <span>無城 0%</span>
-                                    <span>標準 4%</span>
+                                    <span>預設 2%</span>
                                     <span>密集 15%</span>
                                 </div>
                             </div>
@@ -423,12 +418,12 @@
                             <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
                                 <div class="flex justify-between text-xs mb-1.5">
                                     <span class="font-semibold text-slate-300"><i class="fa-solid fa-hurricane text-fuchsia-400 mr-1"></i> 傳送門對數 (同向穿出)</span>
-                                    <span id="lblPortalPairs" class="mono font-bold text-fuchsia-400">關閉 (0 對)</span>
+                                    <span id="lblPortalPairs" class="mono font-bold text-fuchsia-400">1 對（2 個）</span>
                                 </div>
-                                <input id="inpPortalPairs" type="range" min="0" max="6" step="1" value="0" oninput="updateConfigLabels()" class="w-full cursor-pointer">
+                                <input id="inpPortalPairs" type="range" min="0" max="6" step="1" value="1" oninput="updateConfigLabels()" class="w-full cursor-pointer">
                                 <div class="flex justify-between text-[10px] text-slate-500 mt-1">
                                     <span>關閉 0</span>
-                                    <span>標準 2 對</span>
+                                    <span>預設 1 對</span>
                                     <span>混亂 6 對</span>
                                 </div>
                             </div>
@@ -554,3 +549,7 @@
     <script src="js/input.js"></script>
 </body>
 </html>
+
+
+
+

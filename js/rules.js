@@ -10,14 +10,14 @@ const RULE_FIELDS=[
  ['capitals','每人主城數',1,1,4], ['wrap','關閉硬邊界（四邊互通）',false],
  ['difficulty','電腦強度','normal',{easy:'簡單 · 每 2 回合一步',normal:'普通 · 每回合一步',hard:'困難 · 每回合兩步',expert:'專家 · 每回合三步'}],
  ['suddenDeath','啟用驟死賽',false], ['suddenMinutes','驟死開始（分鐘）',10,0.1,60,0.1],
- ['riverDensity','河流密度 %',5,0,15],['riverPattern','河流生成模式','normal',{normal:'一般河流（流向出口）',whirlpool:'漩渦（封閉循環）',mixed:'混合（一般＋漩渦）'}],['riverFlow','河流每次輸兵 n',10,1,100],['riverRate','河流輸兵頻率（次／回合）',1,0.1,4,0.05],
+ ['riverDensity','河流密度 %',5,0,15],['riverPattern','河流生成模式','mixed',{normal:'一般河流（流向出口）',whirlpool:'漩渦（封閉循環）',mixed:'混合（一般＋漩渦）'}],['riverFlow','河流每次輸兵 n',10,1,100],['riverRate','河流輸兵頻率（次／回合）',1,0.1,4,0.05],
  ['roadDensity','道路密度 %',5,0,20],['roadBonus','道路額外移速（+1 = 2倍）',1,0,3,0.25],
  ['cartCount','馬車數量',1,0,30],['cartSteps','馬車速度倍率',2,2,4],
- ['officerCount','軍官營地數量',1,0,20],['officerCost','招募軍官花費 n',30,1,500],['officerLimit','每人軍官上限',3,1,8],
+ ['officerCount','軍官營地數量',1,0,20],['officerCost','招募軍官花費 n',300,1,500],['officerLimit','每人軍官上限',3,1,8],
  ['watchCount','瞭望台數量',1,0,30],['watchGuard','瞭望台中立兵 n',20,0,500],['watchRadius','瞭望台視野 r',4,1,12],['watchDrain','瞭望台每回合損耗 k',1,0,30],
  ['goblinCount','哥布林營地數量',1,0,20],['goblinCost','工兵招募花費 n',20,1,500],['blastSize','工兵爆破邊長 n',5,1,9],
  ['turretCount','砲台數量',3,0,30],['turretGuard','砲台中立兵力',30,0,500],['turretRadius','砲台射程半徑（2 = 5×5）',2,1,12],['turretVision','砲台視野半徑',2,1,8],['turretPercent','砲台每回合射擊兵力 %',50,1,100],['turretShot','砲台固定射擊量（0 = 按比例）',0,0,100],
- ['casinoCount','賭場數量',1,0,20],['jackpotChance','賭場大獎機率 %',3,0,20],['jackpotMultiplier','大獎倍率',10,2,50],['lavaLoss','每格岩漿過路損耗 n',3,0,100],
+ ['casinoCount','賭場數量',1,0,20],['jackpotChance','賭場大獎機率 %',3,0,20],['jackpotMultiplier','大獎倍率',10,2,50],['lavaLoss','岩漿進入／每回合扣兵 n',3,0,100],
  ['disasters','啟用隨機天災',true],['eventMinSeconds','事件最短間隔（秒）',20,5,600],['eventMaxSeconds','事件最長間隔（秒）',20,5,1200],
  ['eventQuake','地震',true],['eventVolcano','火山',true],['eventSun','放晴',true],['eventMeteor','隕石雨',true],['eventMist','迷霧',true],['eventMiracle','神蹟',true],['eventWarlord','軍閥',true],
  ['eventRadius','地震基準半徑（實際 ×2）',4,2,8],['volcanoRadius','火山基準半徑（實際 ×1.5）',4,2,8],['sunSeconds','放晴持續時間（秒）',3,1,300],['mistSeconds','迷霧持續時間（秒）',10,1,300],['meteorCount','隕石顆數',5,1,20],['meteorSize','隕石擊中邊長 n',3,1,9],
@@ -147,4 +147,6 @@ function refreshCapitals(playerIdx) {
 }
 function chooseRandom(list){return list.length?list[Math.floor(Math.random()*list.length)]:undefined;}
 function shuffle(list){for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[list[i],list[j]]=[list[j],list[i]];}return list;}
+
+
 

@@ -59,16 +59,16 @@ function buildStrategicRoute(target,playerIdx,largestArmy,visibility){
  const n=game.terrain.length,distance=new Int16Array(n).fill(-1),next=new Int32Array(n).fill(-1),queue=new Int32Array(n);let head=0,tail=0;
  let reverse=game.reverseNavigation?.version===game.topologyVersion?game.reverseNavigation.edges:null;
  if(!reverse){reverse=new Map();
- for(let i=0;i<n;i++)if([TILE_PORTAL,TILE_LAVA].includes(game.terrain[i]))for(const [dx,dy] of DIRECTIONS){
+ for(let i=0;i<n;i++)if(game.terrain[i]===TILE_PORTAL)for(const [dx,dy] of DIRECTIONS){
   const from=neighborIndex(i,-dx,-dy);
-  if(from<0||[TILE_PORTAL,TILE_LAVA,TILE_MOUNTAIN].includes(game.terrain[from]))continue;
+  if(from<0||[TILE_PORTAL,TILE_MOUNTAIN].includes(game.terrain[from]))continue;
   const route=resolveTransit(from,i);if(route){if(!reverse.has(route.to))reverse.set(route.to,[]);reverse.get(route.to).push({from,to:i});}
  }
  game.reverseNavigation={version:game.topologyVersion,edges:reverse};
  }
  distance[target]=0;queue[tail++]=target;
  const visit=(from,to,current)=>{
-  if(from<0||distance[from]>=0||[TILE_MOUNTAIN,TILE_PORTAL,TILE_LAVA].includes(game.terrain[from]))return;
+  if(from<0||distance[from]>=0||[TILE_MOUNTAIN,TILE_PORTAL].includes(game.terrain[from]))return;
   if(visibility[from]&&game.owner[from]<0&&game.army[from]>=largestArmy&&from!==target)return;
   distance[from]=distance[current]+1;next[from]=to;queue[tail++]=from;
  };

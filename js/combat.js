@@ -1,5 +1,25 @@
 'use strict';
 
+const pendingSurrenders=new Set();
+function requestSurrender(){
+ if(!game.isRunning||!canCommand())return;
+ if(!window.confirm('確定投降？領地與剩餘兵力將轉為中立，主堡變為教堂。投降後可繼續觀戰。'))return;
+ if(game.mode==='online_client'){
+  if(!clientToHostConn?.open){showToast('尚未連上房主，無法送出投降','rose');return;}
+  clientToHostConn.send({type:'surrender_request',uid:localPlayerUid});
+ }else if(game.mode==='single'&&game.isPaused){
+  surrenderPlayer(game.myPlayerIndex);recordReplaySnapshot();checkVictoryCondition();updateHudAndLeaderboard();return;
+ }else pendingSurrenders.add(game.myPlayerIndex);
+ game.surrenderRequested=true;game.moveQueue=[];updateQueueUI();updateSpectatorUI();
+}
+function surrenderPlayer(idx){
+ const p=game.players[idx];if(!p?.alive)return false;
+ p.alive=false;p.surrendered=true;p.generalIndices=[];p.generalIndex=-1;
+ for(let i=0;i<game.owner.length;i++)if(game.owner[i]===idx){game.owner[i]=-1;if(game.terrain[i]===TILE_GENERAL)game.terrain[i]=TILE_CITY;}
+ pendingOnlineQueues[p.uid]=[];if(idx===game.myPlayerIndex)game.moveQueue=[];
+ game.extra.officers=game.extra.officers.filter(o=>o.owner!==idx);game.extra.focus[idx]=-1;
+ game.visualRevision=(game.visualRevision||0)+1;announceEvent('投降',p.name+' 已投降');return true;
+}
 function advanceGameTurn(dt=turnLoopIntervalMs) {
  if(!game.isRunning||game.isPaused||game.mode==='online_client')return;
  if(replayState.active){
@@ -17,6 +37,7 @@ function advanceGameTurn(dt=turnLoopIntervalMs) {
   document.getElementById('replayScrubber').max=String(game.replayHistory.length-1);
   updateHudAndLeaderboard();return;
  }
+ for(const idx of pendingSurrenders)surrenderPlayer(idx);pendingSurrenders.clear();
  const executedMeta={};
  const count=game.players.length;
  for(let pIdx=0;pIdx<count;pIdx++){
@@ -153,19 +174,19 @@ function handleGeneralCaptured(capturerIdx, victimIdx, capturedTileIdx) {
 
 function checkVictoryCondition() {
     const alivePlayers = game.players.filter(p => p.alive);
-    if (alivePlayers.length === 0) return;
 
-    let isOver = false;
-    let winnerTitle = '';
 
-    if (game.teamMode) {
+    let isOver = alivePlayers.length===0;
+    let winnerTitle = isOver?'所有玩家均已退出戰鬥':'';
+
+    if (alivePlayers.length&&game.teamMode) {
         const aliveTeams = new Set(alivePlayers.map(p => p.team));
         if (aliveTeams.size <= 1) {
             isOver = true;
             const winTeam = alivePlayers[0].team;
             winnerTitle = `${TEAM_LABELS[winTeam]||('軍閥隊 '+winTeam)} 獲得最終勝利！`;
         }
-    } else {
+    } else if(alivePlayers.length) {
         if (alivePlayers.length <= 1) {
             isOver = true;
             winnerTitle = `${alivePlayers[0].name} 統一天下！`;

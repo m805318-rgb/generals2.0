@@ -16,7 +16,7 @@ const projectRoot=path.resolve(__dirname,'..');process.chdir(projectRoot);fs.mkd
     const start=performance.now();advanceGameTurn(500);const duration=performance.now()-start;worst=Math.max(worst,duration);total+=duration;completed++;
     for(let i=0;i<game.terrain.length;i++){
      if(game.army[i]<0||!Number.isFinite(game.army[i]))throw Error('Invalid army');
-     if([TILE_PORTAL,TILE_LAVA].includes(game.terrain[i])&&(game.owner[i]!==-1||game.army[i]!==0))throw Error('Transit tile occupied');
+     if(game.terrain[i]===TILE_PORTAL&&(game.owner[i]!==-1||game.army[i]!==0))throw Error('Transit tile occupied');
      if(game.owner[i]>=game.players.length)throw Error('Invalid owner');
     }
     for(const p of game.players)if(p.alive&&playerCapitals(p.index).length===0)throw Error('Alive without capital');

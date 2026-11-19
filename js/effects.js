@@ -38,8 +38,11 @@ function drawDisasterEffects(c,effects,visibility){
    c.fillStyle='#ffffff';c.beginPath();c.arc(camera.x+(fx+.5+(tx-fx)*t)*ts,camera.y+(fy+.5+(ty-fy)*t)*ts,Math.max(1.5,ts*.065),0,Math.PI*2);c.fill();continue;
   }
   if(f.type==='sun'){
-   c.fillStyle=`rgba(255,230,130,${fade*0.09})`;c.fillRect(0,0,canvas.width,canvas.height);
-   if(!reduced){c.strokeStyle=`rgba(253,224,71,${fade*0.13})`;c.lineWidth=22;for(let n=0;n<6;n++){c.beginPath();c.moveTo(canvas.width*0.6+n*45,-40);c.lineTo(canvas.width*0.15+n*120,canvas.height);c.stroke();}}
+   const w=canvas.width,h=canvas.height,band=Math.min(w,h)*.22;
+   const strength=Math.min(1,t*8,(1-t)*8)*.24;
+   for(const [x0,y0,x1,y1,x,y,bw,bh] of [[0,0,0,band,0,0,w,band],[0,h,0,h-band,0,h-band,w,band],[0,0,band,0,0,0,band,h],[w,0,w-band,0,w-band,0,band,h]]){
+    const glow=c.createLinearGradient(x0,y0,x1,y1);glow.addColorStop(0,`rgba(255,239,164,${strength})`);glow.addColorStop(.45,`rgba(255,245,193,${strength*.45})`);glow.addColorStop(1,'rgba(255,248,210,0)');c.fillStyle=glow;c.fillRect(x,y,bw,bh);
+   }
    continue;
   }
   if(f.type==='mist'){
@@ -87,10 +90,11 @@ function drawDisasterCellBorders(c,f,visibility,ts){
 }
 function drawMistFringe(c){
  const e=game.extra,viewer=displayViewer();if(viewer<0||replayState.active||e?.sudden||e?.sunUntil>e?.elapsedMs||!(e?.mistUntil>e?.elapsedMs))return;
- const focus=mistFocus(viewer);if(focus<0)return;const ts=camera.baseTileSize*camera.zoom;
+ const focus=playerViewFocus(viewer);if(focus<0)return;const ts=camera.baseTileSize*camera.zoom;
+ const publicView=revealPublicShrines(new Uint8Array(game.terrain.length));
  c.save();
  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(Math.max(Math.abs(dx),Math.abs(dy))===2){
-  const i=neighborIndex(focus,dx,dy);if(i<0)continue;
+  const i=neighborIndex(focus,dx,dy);if(i<0||publicView[i])continue;
   const x=camera.x+i%game.width*ts,y=camera.y+Math.floor(i/game.width)*ts;
   const shade=(horizontal,direction)=>{const g=c.createLinearGradient(horizontal?x+(direction<0?ts:0):x,horizontal?y:y+(direction<0?ts:0),horizontal?x+(direction<0?0:ts):x,horizontal?y:y+(direction<0?0:ts));g.addColorStop(0,'rgba(8,18,28,0)');g.addColorStop(1,'rgba(8,18,28,.88)');c.fillStyle=g;c.fillRect(x,y,ts,ts);};
   if(Math.abs(dx)===2)shade(true,dx);if(Math.abs(dy)===2)shade(false,dy);

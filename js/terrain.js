@@ -75,7 +75,7 @@ function initExpansion(cfg,extra) {
  game.players.forEach((p,i)=>{p.difficulty=p.difficulty||game.rules.difficulty;refreshCapitals(i);});
 }
 
-// Resolve both portals and lava as transit tiles. Neither can retain an owner or army.
+// Portals are transit-only; lava is a capturable destination with entry damage.
 function resolveTransit(from,to) {
  const direction=moveDirection(from,to);if(!direction)return null;
  let current=to,loss=0;
@@ -85,7 +85,7 @@ function resolveTransit(from,to) {
   const type=game.terrain[current];
   if(type===TILE_MOUNTAIN)return null;
   if(type===TILE_PORTAL){const pair=game.portalTarget[current];if(pair<0)return null;current=neighborIndex(pair,...direction);}
-  else if(type===TILE_LAVA){loss+=game.rules.lavaLoss;current=neighborIndex(current,...direction);}
+  else if(type===TILE_LAVA)return {to:current,loss:loss+game.rules.lavaLoss};
   else return {to:current,loss};
  }
  return null;
@@ -194,7 +194,8 @@ function processTerrainTurn() {
  for(let i=0;i<game.terrain.length;i++)if(game.terrain[i]===TILE_SHRINE&&game.owner[i]>=0&&!groupedShrines.has(i))blessings.add(game.owner[i]);
  for(let i=0;i<game.terrain.length;i++){
   const type=game.terrain[i],owner=game.owner[i];
-  if(type===TILE_LAVA||type===TILE_PORTAL){game.owner[i]=-1;game.army[i]=0;continue;}
+  if(type===TILE_PORTAL){game.owner[i]=-1;game.army[i]=0;continue;}
+  if(type===TILE_LAVA){game.army[i]=Math.max(0,game.army[i]-game.rules.lavaLoss);if(!game.army[i])game.owner[i]=-1;continue;}
   if(owner<0||!game.players[owner]?.alive)continue;
   if(type===TILE_WATCH){game.army[i]=Math.max(0,game.army[i]-game.rules.watchDrain);if(!game.army[i])game.owner[i]=-1;continue;}
   if(type===TILE_GENERAL)game.army[i]++;

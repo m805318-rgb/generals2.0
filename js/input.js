@@ -17,7 +17,7 @@ window.addEventListener('mousemove', (e) => {
     const dx = e.clientX - camera.dragStartX;
     const dy = e.clientY - camera.dragStartY;
     camera.pointerMovedDist = Math.hypot(dx, dy);
-    if (camera.pointerMovedDist > 5) {
+    if (camera.pointerMovedDist > 5&&!camera.locked) {
         camera.x = camera.camStartX + dx;
         camera.y = camera.camStartY + dy;
     }
@@ -57,9 +57,8 @@ window.addEventListener('keydown', (e) => {
     else if (key === 'a' || e.key === 'ArrowLeft') { e.preventDefault(); queueMoveDirection(-1, 0); }
     else if (key === 'd' || e.key === 'ArrowRight') { e.preventDefault(); queueMoveDirection(1, 0); }
     else if (key === 'z') { e.preventDefault(); toggleSplit50Mode(); }
-    else if (key === 'q') { e.preventDefault(); clearMoveQueue(); }
-    else if (key === 'e') { e.preventDefault(); popLastQueuedMove(); }
     else if (key === 'h') { e.preventDefault(); centerCameraOnMyGeneral(); }
+    else if (key === 'c'&&!e.repeat&&!e.ctrlKey&&!e.metaKey&&!e.altKey) { e.preventDefault(); toggleCameraLock(); }
     else if (key === 'b') { e.preventDefault(); queueRecruit(); }
     else if (key === 'x') { e.preventDefault(); toggleBombMode(); }
     else if (key === 'm') { e.preventDefault(); toggleRelocateCapitalMode(); }
@@ -85,3 +84,5 @@ window.onload = function () {
         document.getElementById('inpJoinRoomCode').value = roomParam;
     }
 };
+
+

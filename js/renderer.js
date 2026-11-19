@@ -10,6 +10,25 @@ function resizeCanvas() {
     canvas.height = window.innerHeight;
 }
 
+function updateCameraLockUI(){
+ const button=document.getElementById('btnCameraLock');if(!button)return;
+ button.textContent=camera.locked?'鎖定視角：開 (C)':'鎖定視角：關 (C)';button.classList.toggle('active',!!camera.locked);button.setAttribute('aria-pressed',String(!!camera.locked));
+ button.title='C 鍵切換：鎖定白色選取框，讓目前選取格保持螢幕中央';
+}
+function toggleCameraLock(){camera.locked=!camera.locked;camera.isDragging=false;updateCameraLockUI();updateCameraTracking();}
+function updateCameraTracking(){
+ if(!game.isRunning||replayState.active)return;
+ const viewer=displayViewer(),e=game.extra;
+ const focus=camera.locked||viewer<0?game.selectedTile:playerViewFocus(viewer);
+ const mist=viewer>=0&&!e?.sudden&&!(e?.sunUntil>e?.elapsedMs)&&e?.mistUntil>e?.elapsedMs;
+ if(Number.isInteger(focus)&&focus>=0&&focus<game.terrain.length){
+  const ts=camera.baseTileSize*camera.zoom,x=(focus%game.width+.5)*ts,y=(Math.floor(focus/game.width)+.5)*ts;
+  const outside=x+camera.x<ts||y+camera.y<ts||x+camera.x>canvas.width-ts||y+camera.y>canvas.height-ts;
+  if(camera.locked||(mist&&!camera.isDragging&&outside&&(!camera.lastMistActive||camera.lastTrackedFocus!==focus))){camera.x=canvas.width/2-x;camera.y=canvas.height/2-y;}
+ }
+ camera.lastTrackedFocus=focus;camera.lastMistActive=mist;
+}
+
 function centerCameraOnMyGeneral() {
     const me = game.players[displayViewer()];
     const ts = camera.baseTileSize * camera.zoom;
@@ -24,14 +43,14 @@ function centerCameraOnMyGeneral() {
     }
 }
 
-function drawGameScene() {
+function drawGameScene(visibility=null) {
     const isBlindFog = !(game.isSpectator&&displayViewer()<0) && !replayState.active && !game.extra?.sudden && !(game.extra?.sunUntil>game.extra?.elapsedMs) && (game.visionMode==='blind'||game.extra?.mistUntil>game.extra?.elapsedMs);
     ctx.fillStyle = isBlindFog ? '#000000' : '#070b14';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (game.width > 0 && game.height > 0 && game.terrain.length > 0) {
         const ts = camera.baseTileSize * camera.zoom;
-        const visMask = computeVisibilityMask(displayViewer());
+        const visMask = visibility||computeVisibilityMask(displayViewer(),true);
 
         // Frustum culling bounds
         const startCol = Math.max(0, Math.floor(-camera.x / ts));
@@ -87,7 +106,7 @@ function drawGameScene() {
                         ctx.globalAlpha = 1.0;
                     }
 
-                    ctx.strokeStyle = (own >= 0 && game.players[own] && terr !== TILE_LAVA)
+                    ctx.strokeStyle = (own >= 0 && game.players[own])
                         ? PLAYER_COLORS[game.players[own].colorIdx % PLAYER_COLORS.length].border
                         : 'rgba(15, 23, 42, 0.55)';
                     ctx.lineWidth = 1;
@@ -317,3 +336,5 @@ function drawArmyNumber(ctx, x, y, ts, armyVal, isOwned, hasBuilding = false) {
     ctx.fillText(str, cx, cy);
     ctx.restore();
 }
+
+

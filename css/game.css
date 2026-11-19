@@ -129,3 +129,13 @@
  #hudTopLeft>div:first-child .min-w-\[125px\]{min-width:100px;}
  .mobile-rank{display:block;}
 }
+@media(max-width:700px){
+ #hudTopRight>div:first-child{flex-wrap:wrap;justify-content:flex-end;}
+ #hudTopLeft{top:92px;}
+ #btnRecruit{white-space:normal;max-width:90vw;}
+}
+
+#hudBottomBar #actionButtonsRow {flex-wrap:nowrap;justify-content:flex-start;max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:thin;} 
+#actionButtonsRow>button {flex:0 0 auto;white-space:nowrap;} 
+#actionButtonsRow #btnRecruit {white-space:nowrap;max-width:none;} 
+

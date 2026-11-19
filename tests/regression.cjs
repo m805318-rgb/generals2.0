@@ -34,9 +34,9 @@ const projectRoot=path.resolve(__dirname,'..');process.chdir(projectRoot);fs.mkd
   }
   fixture({lavaLoss:3});tile(25,TILE_EMPTY,0,20);tile(26,TILE_LAVA,-1,0);tile(27,TILE_LAVA,-1,0);
   check(executeSingleMove(0,25,26,false),'lava passage executes');
-  check(game.army[28]===13&&game.owner[28]===0&&game.army[25]===1,'lava n per traversed tile');
-  check(game.army[26]===0&&game.owner[26]===-1&&game.owner[27]===-1,'lava never occupied');
-  tile(25,TILE_EMPTY,0,3);executeSingleMove(0,25,26,false);check(game.army[25]===1&&game.army[28]===13,'lava can consume entire moving army');
+  check(game.army[26]===16&&game.owner[26]===0&&game.army[25]===1,'lava entry damage');
+  check(game.owner[26]===0&&game.owner[27]===-1,'lava captures first tile without skipping');
+  tile(25,TILE_EMPTY,0,3);executeSingleMove(0,25,26,false);check(game.army[25]===1&&game.army[26]===16,'lava can consume entire moving army');
   fixture();tile(25,TILE_EMPTY,0,21);tile(26,TILE_PORTAL,-1,0);tile(80,TILE_PORTAL,-1,0);game.portalTarget[26]=80;game.portalTarget[80]=26;
   executeSingleMove(0,25,26,false);check(game.army[81]===20&&game.owner[81]===0&&game.army[26]===0&&game.army[80]===0,'portal direction and no garrison');
   fixture({riverFlow:3});tile(25,TILE_RIVER,0,10);tile(26,TILE_RIVER,0,1);game.extra.riverDir[25]=1;game.extra.riverDir[26]=1;

@@ -77,7 +77,7 @@ function queueMoveDirection(dx, dy) {
     if (game.terrain[targetIdx] === TILE_MOUNTAIN) return;
 
     let nextSelectedTile = targetIdx;
-    if ([TILE_PORTAL,TILE_LAVA].includes(game.terrain[targetIdx])) {
+    if (game.terrain[targetIdx]===TILE_PORTAL) {
         const exitIdx = resolvePortalDestination(game.selectedTile, targetIdx);
         if (exitIdx < 0) {
             showToast('通道出口受阻，無法通行！', 'rose');

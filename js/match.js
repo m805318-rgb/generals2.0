@@ -74,6 +74,7 @@ function initMatchSession(mode, matchCfg, players, mapData, myIndex) {
     game.players = players;
     game.myPlayerIndex = myIndex;
     game.isSpectator=myIndex<0;
+    game.surrenderRequested=false;pendingSurrenders.clear();
     game.deathPromptShown=false;document.getElementById('eliminatedPrompt')?.remove();
     game.spectatorTarget=-1;
     game.terrain = new Uint8Array(mapData.terrain);
@@ -86,7 +87,8 @@ function initMatchSession(mode, matchCfg, players, mapData, myIndex) {
     game.relocateTargetingMode = false;
     game.moveQueue = [];
     game.botMemory = {};
-    game.replayHistory = [];
+    game.replayHistory = [];game.replaySampled=false;
+    camera.locked=false;camera.lastTrackedFocus=-1;camera.lastMistActive=false;updateCameraLockUI();
     pendingOnlineQueues = {};
     game.executedThrough={};
     game.netHostFrame=null;game.networkFrame=null;
@@ -176,7 +178,7 @@ function updateHudAndLeaderboard() {
         const own = game.owner[i];
         if (own >= 0 && stats[own]) {
             stats[own].army += game.army[i];
-            if (game.terrain[i] !== TILE_LAVA && game.terrain[i] !== TILE_PORTAL) {
+            if (game.terrain[i] !== TILE_PORTAL) {
                 stats[own].land += 1;
             }
             if (isChurch(game.terrain[i]) || game.terrain[i] === TILE_GENERAL) {

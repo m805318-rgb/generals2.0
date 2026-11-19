@@ -74,7 +74,7 @@ function updateConfigLabels() {
     document.getElementById('lblMountainDensity').textContent = `${config.mountainDensity}%`;
     document.getElementById('lblCityDensity').textContent = `${config.cityDensity.toFixed(1)}%`;
     const lblPortal = document.getElementById('lblPortalPairs');
-    if (lblPortal) lblPortal.textContent = config.portalPairs > 0 ? `${config.portalPairs} 對` : '關閉 (0 對)';
+    if (lblPortal) lblPortal.textContent = config.portalPairs > 0 ? `${config.portalPairs} 對（${config.portalPairs*2} 個）` : '關閉 (0 對)';
     const lblLava = document.getElementById('lblLavaDensity');
     if (lblLava) lblLava.textContent = config.lavaDensity > 0 ? `${config.lavaDensity}%` : '關閉 (0%)';
     document.getElementById('lblBotCount').textContent = `${config.botCount} 名 AI`;
@@ -127,8 +127,8 @@ function resetDefaultSettings() {
     document.getElementById('inpMapHeight').value = 80;
     document.getElementById('inpMountainDensity').value = 18;
     document.getElementById('inpMountainStyle').value = 'random';
-    document.getElementById('inpCityDensity').value = 4;
-    if (document.getElementById('inpPortalPairs')) document.getElementById('inpPortalPairs').value = 0;
+    document.getElementById('inpCityDensity').value = 2;
+    if (document.getElementById('inpPortalPairs')) document.getElementById('inpPortalPairs').value = 1;
     if (document.getElementById('inpLavaDensity')) document.getElementById('inpLavaDensity').value = 0;
     document.getElementById('inpBotCount').value = 3;
     document.getElementById('chkAllowRelocate').checked = true;
@@ -137,3 +137,4 @@ function resetDefaultSettings() {
     setLobbyTeamMode(false);
     updateConfigLabels();
 }
+

@@ -1,9 +1,9 @@
 {
   "name": "generals-expansion",
   "private": true,
-  "version": "2.6.0",
+  "version": "2.10.0",
   "scripts": {
-    "test": "node tests/regression.cjs && node tests/spectators.cjs && node tests/balance.cjs && node tests/weather-settings.cjs && node tests/icons.cjs && node tests/weather-visuals.cjs && node tests/volcano-slopes.cjs && node tests/mist-movement.cjs && node tests/turret-aim.cjs && node tests/ownership-visibility.cjs && node tests/defaults-elimination.cjs && node tests/terrain-rates.cjs",
+    "test": "node tests/regression.cjs && node tests/spectators.cjs && node tests/balance.cjs && node tests/weather-settings.cjs && node tests/icons.cjs && node tests/weather-visuals.cjs && node tests/volcano-slopes.cjs && node tests/mist-movement.cjs && node tests/turret-aim.cjs && node tests/ownership-visibility.cjs && node tests/defaults-elimination.cjs && node tests/terrain-rates.cjs && node tests/room-creation.cjs && node tests/surrender.cjs && node tests/stability-camera.cjs && node tests/weather-selection.cjs && node tests/shrine-public-vision.cjs && node tests/occupiable-lava.cjs",
     "stress": "node tests/stress.cjs",
     "performance": "node tests/performance.cjs"
   },

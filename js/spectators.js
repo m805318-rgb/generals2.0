@@ -4,7 +4,7 @@ config.myRole='player';
 game.isSpectator=false;
 game.spectatorTarget=-1;
 function roomPlayers(){return (activeRoomRawData?.slots||[]).filter(s=>!s.isSpectator);}
-function canCommand(){return !game.isSpectator&&game.myPlayerIndex>=0&&game.players[game.myPlayerIndex]?.alive&&!replayState.active;}
+function canCommand(){return !game.surrenderRequested&&!game.isSpectator&&game.myPlayerIndex>=0&&game.players[game.myPlayerIndex]?.alive&&!replayState.active;}
 function displayViewer(){return game.isSpectator?game.spectatorTarget:game.myPlayerIndex;}
 function selectLobbyRole(value){
  if(game.isRunning){showToast('對局中不能切換玩家／觀戰者身份','rose');return;}
@@ -29,6 +29,7 @@ function renderSpectatorLobby(){
  if(start)start.textContent=config.myRole==='spectator'?'開始觀戰 AI 對局（至少 2 名 AI）':'立即開始單機對戰';
 }
 function updateSpectatorUI(){
+ const surrender=document.getElementById('btnSurrender');if(surrender){surrender.classList.toggle('hidden',!game.isRunning||game.isSpectator||replayState.active||!game.players[game.myPlayerIndex]?.alive);surrender.disabled=!!game.surrenderRequested;surrender.textContent=game.surrenderRequested?'投降處理中…':'投降';}
  const panel=document.getElementById('spectatorPanel'),select=document.getElementById('spectatorView');
  if(!panel||!select)return;
  panel.classList.toggle('hidden',!game.isSpectator||replayState.active);
@@ -58,7 +59,7 @@ function acceptRoomJoin(conn,data){
  if(typeof uid!=='string'||!uid||uid===localPlayerUid||activeRoomRawData.slots.some(s=>s.uid===uid)){
   conn.send({type:'join_rejected',message:'此連線身份已使用，請重新加入'});return;
  }
- const spectator=data.isSpectator===true;
+ const spectator=data.isSpectator===true||(game.isRunning&&data.allowSpectate===true);
  if(game.isRunning&&!spectator){conn.send({type:'join_rejected',message:'對局已開始，請選擇觀戰者後加入'});return;}
  if(!spectator&&roomPlayers().length>=8){
   const bot=activeRoomRawData.slots.findIndex(s=>s.isBot&&!s.isSpectator);
@@ -86,3 +87,7 @@ function spectateAfterElimination(){
 }
 
 function leaveAfterElimination(){document.getElementById('eliminatedPrompt')?.remove();exitMatchToLobby();}
+
+function joinRunningRoom(){
+ if(peerSetupBusy)return;config.myRole='spectator';renderSpectatorLobby();joinOnlineRoom();
+}

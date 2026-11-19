@@ -7,7 +7,7 @@ function captureFrame() {
  return {turn:game.turn,terrain:new Uint8Array(game.terrain),owner:new Int8Array(game.owner),army:new Int32Array(game.army),portalTarget:new Int32Array(game.portalTarget),portalPairId:new Int8Array(game.portalPairId),playersAlive:game.players.map(p=>p.alive),players:structuredClone(game.players),extra:snapshotExtra(game.extra),rules:structuredClone(game.rules)};
 }
 function frameFromPacket(packet){
- return {turn:packet.turn,terrain:new Uint8Array(packet.terrain),owner:new Int8Array(packet.owner),army:new Int32Array(packet.army),portalTarget:new Int32Array(packet.portalTarget||game.portalTarget),portalPairId:new Int8Array(packet.portalPairId||game.portalPairId),playersAlive:packet.players.map(p=>p.alive),players:structuredClone(packet.players),extra:structuredClone(packet.extra),rules:structuredClone(packet.rules||game.rules)};
+ return {turn:packet.turn,terrain:new Uint8Array(packet.terrain),owner:new Int8Array(packet.owner),army:new Int32Array(packet.army),portalTarget:new Int32Array(packet.portalTarget||game.portalTarget),portalPairId:new Int8Array(packet.portalPairId||game.portalPairId),playersAlive:packet.players.map(p=>p.alive),players:structuredClone(packet.players),extra:snapshotExtra(packet.extra),rules:structuredClone(packet.rules||game.rules)};
 }
 function restoreFrame(frame){
  game.turn=frame.turn;game.terrain=new Uint8Array(frame.terrain);game.owner=new Int8Array(frame.owner);game.army=new Int32Array(frame.army);
@@ -17,21 +17,27 @@ function restoreFrame(frame){
  else if(frame.playersAlive)frame.playersAlive.forEach((v,i)=>{if(game.players[i])game.players[i].alive=v;});
  initExpansion({rules:frame.rules||replayState.currentRecord?.rules||{}},frame.extra);
 }
-function recordReplaySnapshot(){game.replayHistory.push(captureFrame());}
+function replayFrameLimit(){return Math.max(180,Math.min(1800,Math.floor(24*1024*1024/(game.width*game.height*24+8192))));}
+function appendReplayFrame(frame){
+ const history=game.replayHistory;history.push(frame);const limit=replayFrameLimit();
+ if(history.length>limit){
+  const selected=replayState.currentRecord?.frames===history?history[replayState.frameIndex]:null;
+  const recent=Math.floor(limit/2),boundary=history.length-recent;
+  const kept=history.filter((_,i)=>i>=boundary||i%2===0);history.splice(0,history.length,...kept);
+  game.replaySampled=true;
+  if(selected){const exact=history.indexOf(selected);replayState.frameIndex=exact>=0?exact:Math.max(0,history.findIndex(f=>f.turn>=selected.turn));}
+ }
+ if(replayState.currentRecord?.frames===history)document.getElementById('replayScrubber').max=String(history.length-1);
+}
+function recordReplaySnapshot(){appendReplayFrame(captureFrame());}
 
 function saveCurrentMatchReplay(title) {
     if (game.replayHistory.length === 0) return;
-    const serializedFrames = game.replayHistory.map(fr => ({
-        turn: fr.turn,
-        terrain: Array.from(fr.terrain),
-        owner: Array.from(fr.owner),
-        army: Array.from(fr.army),
-        playersAlive: fr.playersAlive,
-        portalTarget:Array.from(fr.portalTarget||game.portalTarget),portalPairId:Array.from(fr.portalPairId||game.portalPairId),
-        players: fr.players,extra:fr.extra,rules:fr.rules
-    }));
+    /* Saved frames stay typed until export, avoiding a second expanded map copy. */
+    const serializedFrames = game.replayHistory.slice();
     const record = {
         id: 'rep_' + Date.now(),
+        sampled:!!game.replaySampled,
         title: title || `Turn ${game.turn} 戰役`,
         timestamp: new Date().toLocaleString(),
         width: game.width,
@@ -209,7 +215,7 @@ function renderSavedReplaysList() {
         item.innerHTML = `
             <div>
                 <div class="font-bold text-white text-xs">${rep.title}</div>
-                <div class="text-[10px] text-slate-500 mono">${rep.width}x${rep.height}・${rep.frames.length} 回合・${rep.timestamp}</div>
+                <div class="text-[10px] text-slate-500 mono">${rep.width}x${rep.height}・${rep.frames.length} 個快照${rep.sampled?'（早期抽樣）':''}・${rep.timestamp}</div>
             </div>
             <div class="flex items-center gap-1.5">
                 <button onclick="launchReplayViewer(game.savedReplays[${idx}])" class="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold">觀看</button>
@@ -223,7 +229,7 @@ function renderSavedReplaysList() {
 function exportReplayJson(idx) {
     const rep = game.savedReplays[idx];
     if (!rep) return;
-    const blob = new Blob([JSON.stringify(rep)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(rep,(_,value)=>ArrayBuffer.isView(value)?Array.from(value):value)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -251,3 +257,5 @@ function importReplayJsonFile(event) {
     };
     reader.readAsText(file);
 }
+
+

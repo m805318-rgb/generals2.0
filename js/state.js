@@ -69,8 +69,8 @@ const config = {
     height: 80,
     mountainDensity: 18,
     mountainStyle: 'random',
-    cityDensity: 4.0,
-    portalPairs: 0,
+    cityDensity: 2.0,
+    portalPairs: 1,
     lavaDensity: 0,
     speed: 1,
     botCount: 3,
@@ -122,3 +122,4 @@ let clientMoveSeq = 0;
 // Drift-compensated turn loop state
 let turnLoopIntervalMs = 500;
 let nextTurnExpectedTime = 0;
+

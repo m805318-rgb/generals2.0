@@ -31,6 +31,12 @@ function handleBorderClick(col,row){
  else if(row===game.height&&col===x&&y===game.height-1)queueMoveDirection(0,1);
 }
 function updateExpansionHud(){
+ const recruit=document.getElementById('btnRecruit');
+ if(recruit&&game.rules){
+  const r=game.rules,type=game.terrain[game.selectedTile];
+  recruit.textContent=type===TILE_OFFICER?`招募軍官：${r.officerCost} 兵 (B)`:type===TILE_GOBLIN?`招募工兵：${r.goblinCost} 兵 (B)`:`招募：軍官 ${r.officerCost}／工兵 ${r.goblinCost} 兵 (B)`;
+  recruit.title='選取己方營地後招募；扣除費用後須留下至少 1 兵。';
+ }
  const hud=document.getElementById('expansionHud'),info=document.getElementById('tileInfo');if(!hud||!game.extra)return;
  const e=game.extra,r=game.rules,seconds=Math.floor(e.elapsedMs/1000);
  const weather=e.sudden?'驟死 · 全圖':e.sunUntil>e.elapsedMs?`放晴 ${Math.ceil((e.sunUntil-e.elapsedMs)/1000)}s`:e.mistUntil>e.elapsedMs?`濃霧 ${Math.ceil((e.mistUntil-e.elapsedMs)/1000)}s`:'';
@@ -40,19 +46,19 @@ function updateExpansionHud(){
  if(game.isSpectator)hud.textContent=`觀戰 · ${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')} · ${displayViewer()<0?'全圖':game.players[displayViewer()]?.name||'未知勢力'} ${weather}${latest?' ｜'+latest.name:''}`;
  const i=game.selectedTile;
  if(i<0){info.textContent=game.isSpectator?'點擊格子查看資訊 · 拖曳平移／滾輪縮放':'選格查看資訊 · B 招募 · X 工兵爆破';return;}
- const vis=computeVisibilityMask(displayViewer());
+ const vis=computeVisibilityMask(displayViewer(),true);
  if(!vis[i]){info.textContent='視野外';return;}
  const type=game.terrain[i];
  const notes={
-  [TILE_RIVER]:`每回合沿箭頭輸送 ${r.riverFlow} 兵（留下 1 兵）`,
+  [TILE_RIVER]:`每次沿箭頭輸送 ${r.riverFlow} 兵，每回合 ${r.riverRate} 次（留下 1 兵）`,
   [TILE_OFFICER]:`B：花 ${r.officerCost} 兵招募軍官；不動用主城`,
   [TILE_GOBLIN]:`B：花 ${r.goblinCost} 兵於營地旁產生工兵`,
   [TILE_WATCH]:`視野半徑 ${r.watchRadius}，每回合減 ${r.watchDrain} 兵；歸零失去佔領`,
   [TILE_TURRET]:`射程 ${r.turretRadius*2+1}×${r.turretRadius*2+1}，每回合射 ${r.turretShot>0?r.turretShot+' 兵':r.turretPercent+'% 駐軍'}；不佔領目標`,
   [TILE_CASINO]:`入場兵力：${r.jackpotChance}% ×${r.jackpotMultiplier}；${50-r.jackpotChance}% ×2；50% 歸零`,
   [TILE_ROAD]:`同一支部隊 ${1+r.roadBonus} 倍行軍速度`,
-  [TILE_SHRINE]:'2×2 四格完整佔領後，全勢力教堂產兵 ×2；總產兵相當於 4 教堂',
-  [TILE_LAVA]:`穿越每格損失 ${r.lavaLoss} 兵，不能停留`,
+  [TILE_SHRINE]:'2×2 四格完整佔領後，全勢力教堂產兵 ×2；總產兵相當於 4 教堂；周邊 5×5 為公共視野',
+  [TILE_LAVA]:`可佔領；進入扣 ${r.lavaLoss} 兵，駐軍每回合再扣 ${r.lavaLoss} 兵，歸零變中立`,
   [TILE_PORTAL]:'同方向穿越成對出口，不留兵'
  };
  info.textContent=`${TILE_LABELS[type]} · ${game.army[i]} 兵${e.engineers[i]?' · 工兵 '+e.engineers[i]:''}${e.carts[i]?' · 馬車 ×'+r.cartSteps+'速':''} ${notes[type]||''}`;
@@ -64,3 +70,6 @@ function drawWrapBorder(c,ts){
  for(const [x,y,w,h] of [[-1,0,1,game.height],[game.width,0,1,game.height],[0,-1,game.width,1],[0,game.height,game.width,1]]){c.fillRect(camera.x+x*ts,camera.y+y*ts,w*ts,h*ts);c.strokeRect(camera.x+x*ts,camera.y+y*ts,w*ts,h*ts);}
  c.restore();
 }
+
+
+
